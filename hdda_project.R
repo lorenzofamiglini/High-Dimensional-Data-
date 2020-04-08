@@ -1,22 +1,220 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Hdda2"
+output: html_document
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+```{r setup, include=FALSE}
+library("rbiom")
+library("biomformat")
+```
 
 ```{r}
-#install.packages("devtools")
-#devtools::install_github("joey711/biomformat")
-library("biomformat")
-
-#install.packages("remotes")
-remotes::install_github("cmmr/rbiom")
-
-library("rbiom")
+biom <- read_biom("D:/Datasets/Hdda_project/221_otu_table.biom")
+summary(biom)
+show(biom)
 ```
+
+
+```{r}
+fecal_samples = as(biom_data(biom), "matrix")
+## taxonomic rank: 
+# species -genus -family-class- phylum 
+bacteria_taxa = observation_metadata(biom)
+
+bacteria_taxa$taxonomy2 <- gsub("\\[|\\]", "", bacteria_taxa$taxonomy2)
+bacteria_taxa$taxonomy3 <- gsub("\\[|\\]", "", bacteria_taxa$taxonomy3)
+bacteria_taxa$taxonomy4 <- gsub("\\[|\\]", "", bacteria_taxa$taxonomy4)
+bacteria_taxa$taxonomy5 <- gsub("\\[|\\]", "", bacteria_taxa$taxonomy5)
+bacteria_taxa$taxonomy6 <- gsub("\\[|\\]", "", bacteria_taxa$taxonomy6)
+```
+
+
+```{r}
+tax2 <- bacteria_taxa[,c("taxonomy1","taxonomy2")]
+tax2["id"] <- rownames(tax2)
+tax2["merge"] <- tidyr::unite(tax2[,-ncol(tax2)],"merge_type",sep = ",")
+
+tax3 <- bacteria_taxa[,c("taxonomy1","taxonomy2", "taxonomy3")]
+tax3["id"] <- rownames(tax3)
+tax3["merge"] <- tidyr::unite(tax3[,-ncol(tax3)],"merge_type",sep = ",")
+
+tax4 <- subset(bacteria_taxa[,c(1:4)], taxonomy4 != "o__")
+tax4["id"] <- rownames(tax4)
+tax4["merge"] <- tidyr::unite(tax4[,-ncol(tax4)],"merge_type",sep = ",")
+
+tax5 <- subset(bacteria_taxa[,c(1:5)], taxonomy5 != "f__")
+tax5["id"] <- rownames(tax5)
+tax5["merge"] <- tidyr::unite(tax5[,-ncol(tax5)],"merge_type",sep = ",")
+
+tax6 <- subset(bacteria_taxa[,c(1:6)], taxonomy6 != "g__")
+tax6["id"] <- rownames(tax6)
+tax6["merge"] <- tidyr::unite(tax6[,-ncol(tax6)],"merge_type",sep = ",")
+```
+
+```{r}
+tax2[,c("taxonomy1","taxonomy2")] <- list(NULL)
+tax3[,c("taxonomy1","taxonomy2","taxonomy3")] <- list(NULL)
+tax4[,c("taxonomy1","taxonomy2","taxonomy3","taxonomy4")] <- list(NULL)
+tax5[,c("taxonomy1","taxonomy2","taxonomy3","taxonomy4","taxonomy5")] <- list(NULL)
+tax6[,c("taxonomy1","taxonomy2","taxonomy3","taxonomy4","taxonomy5","taxonomy6")] <- list(NULL)
+```
+
+
+```{r}
+df_fecal <- as.data.frame(fecal_samples)
+df_fecal$id <- rownames(df_fecal)
+```
+
+
+```{r}
+library(dplyr)
+prepare_data <- function(tax2){
+  fec_tax2 <- as.data.frame(merge(df_fecal,tax2,by="id", sort = F))
+  fec_tax2$id <- NULL
+  fec_tax2 <- fec_tax2 %>% group_by(merge) %>% summarize_all(sum) 
+  fec_tax2 <- as.data.frame(t(fec_tax2))
+  colnames(fec_tax2) <- as.character(unlist(fec_tax2[1,]))
+  fec_tax2 <- fec_tax2[-1,]
+  fec_tax2 <- as.data.frame(lapply(fec_tax2, as.numeric))
+  #fec_tax2 <- as.data.frame((apply(fec_tax2,1,function(x){x/sum(x)})))
+  return(fec_tax2)
+}
+```
+
+```{r}
+final_tax2 <- as.data.frame(prepare_data(tax2))
+final_tax3 <- as.data.frame(prepare_data(tax3))
+final_tax4 <- as.data.frame(prepare_data(tax4))
+final_tax5 <- as.data.frame(prepare_data(tax5))
+final_tax6 <- as.data.frame(prepare_data(tax6))
+final <- cbind(final_tax2, final_tax3, final_tax4, final_tax5, final_tax6)
+as.data.frame(t(final))
+```
+
+
+```{r}
+final_ab <- as.data.frame(t(apply(final,1,function(x){x/sum(x)})))
+final_tax6_ab <- as.data.frame(t(apply(final_tax6,1, function(x){x/sum(x)})))
+```
+
+# Permanova per filtrare i nutrienti
+
+```{r}
+OTU <- otu_table(fecal_samples, taxa_are_rows = TRUE)
+TAX <- tax_table(as.matrix(bacteria_taxa))
+physeq <- phyloseq(OTU, TAX)
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+#write.csv(final,"D:/Datasets/Hdda_project/otus_tab.csv")
+```
+
+
+```{r}
+final_tax6 <- as.data.frame(lapply(final_tax6, as.numeric))
+clu <- cluster::pam(final_tax6,2,diss = F, metric = "manhattan")
+#cluster::plot.partition(clu)
+clu$silinfo$avg.width
+```
+
+```{r}
+final_tax6 <- apply(final_tax6,2,function(x){x/sum(x)})
+
+
+dist_jsd <- philentropy::JSD(final_tax6)
+
+for (i in 2:30){
+  clu <- cluster::pam(dist_jsd,i,diss = T, metric = "manhattan")
+ #cluster::plot.partition(clu)
+  print(clu$silinfo$avg.width)
+}
+
+
+
+
+heatmap(dist_jsd)
+```
+
+```{r}
+data <- read.csv("C:/Users/loren/OneDrive/Desktop/MetaHIT_SangerSamples.genus.txt", header=T, row.names=1, dec=".", sep="\t")
+data=data[-1,]
+```
+
+
+```{r}
+dist.JSD <- function(inMatrix, pseudocount=0.000001, ...) {
+	KLD <- function(x,y) sum(x *log(x/y))
+	JSD<- function(x,y) sqrt(0.5 * KLD(x, (x+y)/2) + 0.5 * KLD(y, (x+y)/2))
+	matrixColSize <- length(colnames(inMatrix))
+	matrixRowSize <- length(rownames(inMatrix))
+	colnames <- colnames(inMatrix)
+	resultsMatrix <- matrix(0, matrixColSize, matrixColSize)
+        
+  inMatrix = apply(inMatrix,1:2,function(x) ifelse (x==0,pseudocount,x))
+
+	for(i in 1:matrixColSize) {
+		for(j in 1:matrixColSize) { 
+			resultsMatrix[i,j]=JSD(as.vector(inMatrix[,i]),
+			as.vector(inMatrix[,j]))
+		}
+	}
+	colnames -> colnames(resultsMatrix) -> rownames(resultsMatrix)
+	as.dist(resultsMatrix)->resultsMatrix
+	attr(resultsMatrix, "method") <- "dist"
+	return(resultsMatrix) 
+ }
+```
+
+
+```{r}
+data.dist=dist.JSD(fecal_samples)
+data.dist
+```
+
+
+```{r}
+ pam.clustering=function(x,k) { # x is a distance matrix and k the number of clusters
+                         require(cluster)
+                         cluster = as.vector(pam(as.dist(x), k, diss=TRUE)$clustering)
+                         return(cluster)
+                        }
+```
+
+
+```{r}
+data.cluster=pam.clustering(data.dist, k=2)
+data.cluster
+```
+
+
+```{r}
+obs.silhouette=mean(silhouette(data.cluster, data.dist)[,3])
+```
+
+
+```{r}
+obs.silhouette
+```
+
+```{r}
+library(ade4)
+ obs.pca=dudi.pca(data.frame(t(data)), scannf=F, nf=10)
+ obs.bet=bca(obs.pca, fac=as.factor(data.cluster)) 
+ s.class(obs.bet$ls, fac=as.factor(data.cluster), grid=F)
+```
+
+
+
+#### Discretizzazione variabili dei nutrienti: 
 ```{r}
 map_nutriens <- read.csv("D:/Datasets/Hdda_project/46764_mapping_file.txt", sep = "\t")
 numeric_cols <- unlist(lapply(map_nutriens, is.numeric))  
@@ -32,172 +230,71 @@ nut[,c("lib_reads_seqd","run_date","qiita_prep_id","age","anonymized_name","data
 nutriens = cbind(map_nutriens$X.SampleID,nut)
 names(nutriens)[1] = "id"
 colnames(nutriens)
-```
+to_levels <- gtools::quantcut(nutriens$aspartic_acid_g_ave,3,labels = c("low", "medium","high"))
 
+library(gtools)
+                   
+to_quantile <- function(x){
+    to_cut <- quantcut(x,3,labels = c("low", "medium","high"))
+    try(to_cut <- quantcut(x,2,labels = c("very_low", "medium")), silent = TRUE)
+    
 
-```{r}
-library(biomformat)
-biom <- read_biom("D:/Datasets/Hdda_project/221_otu_table.biom")
-
-summary(biom)
-show(biom)
-
-# type: OTU table 
-# matrix_type: dense 
-# 3119 rows and 100 columns 
-
-## taxonomic rank: 
-# species - genus -family-class- phylum 
-
-dati <- biom_data(biom)
-dati
-str(dati)
-#sort(colnames(x))
-dati@Dimnames[[2]] #da qui possiamo prendere l'id primario 
-dati@x
-mat <- dati@x
-
-print(length(unique(observation_metadata(biom)[,6])))
-
-data.frame(table(observation_metadata(biom)[,5])) 
-
-
-fecal_samples = as(biom_data(biom), "matrix")
-
-#phy_tree(biom)
-
-## taxonomic rank: 
-# species -genus -family-class- phylum 
-bacteria_taxa = as(observation_metadata(biom), "matrix")
-#bacteria_taxa$taxonomy7 <- NULL
-#table(bacteria_taxa$taxonomy6)
-
-```
-
-```{r}
-library("phyloseq")
-fecal_samples <- apply(fecal_samples,2,function(x){x/sum(x)})
-OTU <- otu_table(fecal_samples, taxa_are_rows = TRUE)
-TAX <- tax_table(as.matrix(bacteria_taxa))
-physeq <- phyloseq(OTU, TAX)
-
-plot_bar(physeq, fill = "taxonomy6")
-```
-```{r}
-library("ape")
-random_tree = rtree(3393, rooted=TRUE, tip.label=taxa_names(physeq))
-plot(random_tree,show.tip.label = F)
-```
-
-
-```{r}
-physeq1 = merge_phyloseq(physeq, random_tree)
-
-```
-
-```{r}
-plot_tree(physeq1,label.tips=F, ladderize="left", plot.margin=0.3)
-```
-
-```{r}
-plot_heatmap(physeq1)
-plot_heatmap(physeq1, taxa.label="taxonomy2")
-```
-
-```{r}
-distanza <- UniFrac(physeq1, weighted=FALSE, normalized=TRUE, parallel=TRUE, fast=TRUE)
-#distance(physeq1, "uunifrac") 
-
-distanza_df <- as.data.frame(as.matrix(distanza))
-distanza_df$id <- rownames(distanza_df)
-
-
-permanova_df <- as.data.frame(merge(distanza_df,nutriens,by='id', sort = F))
-
-perm_bacteria = permanova_df[,2:101]
-perm_nutriens = permanova_df[,102:ncol(permanova_df)]
-
-
-perm_nutriens = perm_nutriens[vapply(perm_nutriens, function(x) length(unique(x)) > 1, logical(1L))]
-# all columns to grams
-for (i in 1:ncol(perm_nutriens)){
-  if (grepl("mg",(colnames(perm_nutriens)[i]))){
-    perm_nutriens[,i] = perm_nutriens[,i]/1000
+  return (to_cut)
+}    
+#(quantile(x)[[1]][1] == 0) & (quantile(x)[[2]][1] == 0) & (quantile(x)[[3]][1] == 0) &
+myFunc <- function(x)
+{
+  if (quantile(x)[[4]][1] == 0){
+    to_cut = ifelse(x == 0, "assente", "presente")
   }
-  else if (grepl("mcg",(colnames(perm_nutriens)[i]))){
-    perm_nutriens[,i] = perm_nutriens[,i]/1000000
+  else if (quantile(x)[[3]][1] != 0){
+    to_cut = ifelse(x ==0, "assente", quantcut(x[x!=0],3, labels = c("low","medium","high")))
   }
-}
-
-standardize = function(col){
-  col <- (col - mean(col)) / sd(col)
-  return (col)
-}
-
-standardized_nutriens = apply(perm_nutriens,2,standardize)
-#perm_nutriens = as.data.frame(scale(perm_nutriens))
-plot(distanza)
-```
-
-```{r}
-lista <- c()
-for (i in 1:ncol(perm_nutriens)){
-  permanova <- vegan::adonis(distanza ~ perm_nutriens[,i],data = perm_nutriens, permutations=1000, method = "bray")
-  if (unlist(permanova)$`aov.tab.Pr(>F)1` >= 0){
-    lista = append(lista, unlist(permanova)$`aov.tab.Pr(>F)1`)
+  else {
+    to_cut = ifelse(x == 0, "assente","presente")
   }
+  return (to_cut)
 }
-```
+nutriens2 <- nutriens
+nutriens2 <- nutriens2[,-c(51,52)]
+nutriens2<- nutriens2[,-116] 
+
+for(i in 2:ncol(nutriens2)){
+  print(i)
+  app <- myFunc(nutriens2[,i])                                 
+  nutriens2[,i] <- app
+}
+
+plot(quantcut(nutriens2[,18], 3,na.rm = T))
+plot(quantile(nutriens2[,18]))
+plot(nutriens2[,18])
+
+nutriens2[nutriens2 == 3] <- "high"
+nutriens2[nutriens2 == 2] <- "medium"
+nutriens2[nutriens2 == 1] <- "low"
+``` 
+
 
 ```{r}
-set.seed(20)
-p_lista <- c()
-for (i in 1:ncol(perm_nutriens)){
-  tests <- lapply(1:3, function(i) vegan::adonis(distanza ~ perm_nutriens[,i], permutations = 100, method = "bray"))
-  get_list <- sapply(1:3, function(i) tests[[i]]$aov.tab$`Pr(>F)`[1])
-  get_list_adj <- p.adjust(get_list, method = "fdr")
-  p_val_adj <- mean(get_list_adj)
-  p_lista <- append(p_lista, p_val_adj)
-}
 
-p_lista <-p_lista[p_lista <= 0.25]
-```
-
-
-```{r}
-
-conta <- 0
-list_idx <- c()
-for(i in p_lista){
-  conta = conta + 1
-  if (i <= 0.25){
-    list_idx = append(list_idx, conta)
-  }
-}
-
-
-sele_col <- names(perm_nutriens)[list_idx]
-perm_nutriens[,sele_col]
-
-permanova$f.perms
-
-```
-
-```{r}
-for (i in 2:30){
-  clu <- cluster::pam(dist_jsd,i,diss = T, metric = "manhattan")
- #cluster::plot.partition(clu)
-  print(clu$silinfo$avg.width)
-}
-
-otu <- as.matrix(otu_table(physeq1))
-
-dist_jsd <- philentropy::JSD(t(fecal_samples))
-heatmap(dist_jsd)
 ```
 
 
 ```{r}
-UniFrac()
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
 ```
 
