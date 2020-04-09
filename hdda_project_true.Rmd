@@ -13,7 +13,7 @@ library("gplots")
 ```
 
 ```{r}
-biom <- read_biom("221_otu_table.biom")
+biom <- read_biom("datasets/221_otu_table.biom")
 summary(biom)
 show(biom)
 ```
@@ -189,7 +189,7 @@ boxplot(prevotella_cl1,prevotella_cl2, main = "Abundance Prevotella in two clust
 ```
 #### Discretizzazione variabili dei nutrienti: 
 ```{r}
-map_nutriens <- read.csv("46764_mapping_file.txt", sep = "\t")
+map_nutriens <- read.csv("datasets/46764_mapping_file.txt", sep = "\t")
 numeric_cols <- unlist(lapply(map_nutriens, is.numeric))  
 
 nut = map_nutriens[ , numeric_cols]
@@ -247,6 +247,7 @@ nutriens2[nutriens2 == 1] <- "low"
 
 
 ```{r}
+distanza <- UniFrac(physeq1, weighted=FALSE, normalized=TRUE, parallel=TRUE, fast=TRUE)
 lista <- c()
 for (i in 1:ncol(nutriens2)){
   permanova <- vegan::adonis(distanza ~ nutriens2[,i],data = perm_nutriens, permutations=1000, method = "bray")
@@ -287,7 +288,7 @@ heatmap(associations[2:100,])
 
 ```{r}
 library("FactoMineR")
-res.pca <- PCA(ph, graph = T, ncp = 2, scale.unit = T)
+library("factoextra")
 
 fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 80))
 fviz_pca_ind(obs.pca, col.ind = cluster_p, 
@@ -311,7 +312,7 @@ ade4::s.class(obs.bet$ls, fac=as.factor(cluster_p), grid=T)
 
 
 ```{r}
-
+mds = ade4::dudi.pco(dist_jsd)
 ```
 
 
