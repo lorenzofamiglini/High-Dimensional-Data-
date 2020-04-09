@@ -4,12 +4,16 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-library("rbiom")
+#library("rbiom")
 library("biomformat")
+library("phyloseq")
+library("microbiome")
+library("vegan")
+library("gplots")
 ```
 
 ```{r}
-biom <- read_biom("D:/Datasets/Hdda_project/221_otu_table.biom")
+biom <- read_biom("221_otu_table.biom")
 summary(biom)
 show(biom)
 ```
@@ -115,12 +119,15 @@ ph <- as.data.frame(otu_table(physeq2))
 
 dist_jsd <- phyloseq::distance(physeq2, method = "jsd")
 
+
 for (i in 2:20){
   clu <- cluster::pam(dist_jsd,i,diss = T, metric = "euclidean")
   print(clu$silinfo$avg.width)
 }
 
 heatmap(as.matrix(dist_jsd))
+
+data_pca = as.data.frame(t(ph))
 ```
 
 
@@ -135,46 +142,54 @@ plot(nclusters, type="h", xlab="k clusters", ylab="Average Silhouette width", ma
 
 
 ```{r}
+library("corrplot")
 clu <- cluster::pam(dist_jsd,2,diss = T, metric = "euclidean") #get cluster 
-```
 
+mds <- cmdscale(dist_jsd,eig=TRUE, k=2) # k is the number of dim
+variance_explained_mds = mds$GOF # cumulative percentage of variance explained by first 2 dimensions
+x <- mds$points[,1]
+y <- mds$points[,2]
+plot (x,y,col=cluster_p, ylim = c(-0.8,0.8))
+
+mds # view results
+
+# plot solution
+clu$medoids
+medoid_cl1 = mds$points[rownames(mds$points) == clu$medoids[1],]
+medoid_cl2 = mds$points[rownames(mds$points) == clu$medoids[2],]
+
+data_mds = as.data.frame(mds$points)
+colnames(data_mds) = c("x","y")
+
+plot(x, y, main = "Multi Dimensional Scaling plot",col=cluster_p,pch=1)
+points(medoid_cl1,pch=19)
+points(medoid_cl2,pch=19)
+```
 
 ```{r}
-library("FactoMineR")
-res.pca <- PCA(ph, graph = T, ncp = 2, scale.unit = T)
+# differenze tra i cluster
+data_pca$cluster = clu$clustering
+cluster1 = data_pca[data_pca$cluster == 1,]
+cluster2 = data_pca[data_pca$cluster == 2,]
 
-fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 80))
-fviz_pca_ind(obs.pca, col.ind = cluster_p, 
-             repel = TRUE # Avoid text overlapping (slow if many points)
-             )
+cluster1_ab <- as.data.frame(t(apply(cluster1,1, function(x){x/sum(x)})))
+cluster2_ab = as.data.frame(t(apply(cluster2,1, function(x){x/sum(x)})))
 
-pam.clustering=function(x,k) { # x is a distance matrix and k the number of clusters
-                         require(cluster)
-                         cluster = as.vector(pam(as.dist(x), k, diss=TRUE)$clustering)
-                         return(cluster)
-                        }
-cluster_p = pam.clustering(dist_jsd, k=2)
+# si selezionano prevotella e bacteroides nei due cluster (da rivedere la scelta dei generi)
+prevotella_cl1 = cluster1_ab$k__Bacteria_p__Bacteroidetes_c__Bacteroidia_o__Bacteroidales_f__Prevotellaceae_g__Prevotella
+prevotella_cl2 = cluster2_ab$k__Bacteria_p__Bacteroidetes_c__Bacteroidia_o__Bacteroidales_f__Prevotellaceae_g__Prevotella
+bacteroides_cl1 = cluster1_ab$g__Bacteroides
+bacteroides_cl2 = cluster2_ab$g__Bacteroides
 
-obs.pca=ade4::dudi.pca(as.data.frame(ph), scannf=F, nf = 2)
-obs.bet=ade4::bca(obs.pca, fac=as.factor(cluster_p), scannf=T) 
-ade4::s.class(obs.bet$ls, fac=as.factor(cluster_p), grid=T)
+# boxplot sull'abundance di Bacteroides
+boxplot(bacteroides_cl1,bacteroides_cl2, main= "Abundance Bacteroides in two clusters")
+
+# Boxplot sull'abundance di Prevotella
+boxplot(prevotella_cl1,prevotella_cl2, main = "Abundance Prevotella in two clusters")
 ```
-
-
-```{r}
-
-```
-
-
-
-
-
-
-
-
 #### Discretizzazione variabili dei nutrienti: 
 ```{r}
-map_nutriens <- read.csv("D:/Datasets/Hdda_project/46764_mapping_file.txt", sep = "\t")
+map_nutriens <- read.csv("46764_mapping_file.txt", sep = "\t")
 numeric_cols <- unlist(lapply(map_nutriens, is.numeric))  
 
 nut = map_nutriens[ , numeric_cols]
@@ -187,7 +202,7 @@ nut[,c("lib_reads_seqd","run_date","qiita_prep_id","age","anonymized_name","data
 
 nutriens = cbind(map_nutriens$X.SampleID,nut)
 names(nutriens)[1] = "id"
-colnames(nutriens)
+nutriens = nutriens[vapply(nutriens, function(x) length(unique(x)) > 1, logical(1L))]
 to_levels <- gtools::quantcut(nutriens$aspartic_acid_g_ave,3,labels = c("low", "medium","high"))
 
 library(gtools)
@@ -213,24 +228,86 @@ myFunc <- function(x)
   }
   return (to_cut)
 }
+
+
 nutriens2 <- nutriens
-nutriens2 <- nutriens2[,-c(51,52)]
-nutriens2<- nutriens2[,-116] 
+#nutriens2 <- nutriens2[,-c(51,52)]
+#nutriens2<- nutriens2[,-116] 
 
 for(i in 2:ncol(nutriens2)){
-  print(i)
   app <- myFunc(nutriens2[,i])                                 
   nutriens2[,i] <- app
 }
 
-plot(quantcut(nutriens2[,18], 3,na.rm = T))
-plot(quantile(nutriens2[,18]))
-plot(nutriens2[,18])
-
 nutriens2[nutriens2 == 3] <- "high"
 nutriens2[nutriens2 == 2] <- "medium"
 nutriens2[nutriens2 == 1] <- "low"
+
 ``` 
+
+
+```{r}
+lista <- c()
+for (i in 1:ncol(nutriens2)){
+  permanova <- vegan::adonis(distanza ~ nutriens2[,i],data = perm_nutriens, permutations=1000, method = "bray")
+  if (unlist(permanova)$`aov.tab.Pr(>F)1` >= 0){
+    lista = append(lista, unlist(permanova)$`aov.tab.Pr(>F)1`)
+  }
+}
+```
+
+
+```{r}
+# merge nutriens dataset with data_pca dataset
+
+standardize = function(col){
+  col <- (col - mean(col)) / sd(col)
+  return (col)
+}
+standardized_nutriens = as.data.frame(apply(nutriens[,-1],2,standardize))
+standardized_nutriens$id = nutriens[,1]
+
+data_pca$id = rownames(data_pca)
+subject_clusters = data_pca[,c("id","cluster")]
+
+nutriens_with_clusters = merge(subject_clusters,standardized_nutriens,by="id")
+nutriens_cl1 = nutriens_with_clusters[nutriens_with_clusters$cluster==1,]
+nutriens_cl2 = nutriens_with_clusters[nutriens_with_clusters$cluster==2,]
+
+# verify nutrients - enterotype association
+
+strength_nutrients_enterotype1_association = as.matrix(colMeans(nutriens_cl1[,-1]))
+strength_nutrients_enterotype2_association = as.matrix(colMeans(nutriens_cl2[,-1]))
+associations =cbind(strength_nutrients_enterotype1_association,strength_nutrients_enterotype2_association)
+
+heatmap(associations[2:100,])
+```
+
+
+
+```{r}
+library("FactoMineR")
+res.pca <- PCA(ph, graph = T, ncp = 2, scale.unit = T)
+
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 80))
+fviz_pca_ind(obs.pca, col.ind = cluster_p, 
+             repel = TRUE # Avoid text overlapping (slow if many points)
+             )
+
+pam.clustering=function(x,k) { # x is a distance matrix and k the number of clusters
+                         require(cluster)
+                         cluster = as.vector(pam(as.dist(x), k, diss=TRUE)$clustering)
+                         return(cluster)
+                        }
+cluster_p = pam.clustering(dist_jsd, k=2)
+
+obs.pca=ade4::dudi.pca(as.data.frame(ph), scannf=F, nf = 2)
+obs.bet=ade4::bca(obs.pca, fac=as.factor(cluster_p), scannf=T) 
+ade4::s.class(obs.bet$ls, fac=as.factor(cluster_p), grid=T)
+```
+
+
+
 
 
 ```{r}
