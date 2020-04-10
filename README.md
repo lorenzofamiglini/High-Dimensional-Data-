@@ -1,7 +1,4 @@
 # High-Dimensional-Data
 
-Hdda_project: normalizzazione dei dati, Unifrac unweigthed, permanova, fdr 
-
-Hdda2_true: preparazione dei dati per filtraggio dei batteri 
-
+Hdda_project_true: Tutto mergiato in questo unico file rmd 
 HDDA_preprocessing.py: filtro abbondanza secondo criteri stabiliti
