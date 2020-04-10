@@ -96,12 +96,13 @@ as.data.frame(t(final))
 
 ```{r}
 final_tax6_ab <- as.data.frame(t(final_tax6))
-final_tax6_ab <- as.data.frame(lapply(final_tax6_ab, as.numeric))
+final_tax6_ab <- as.data.frame(lapply(final_tax6_ab,function(x) as.numeric(as.character(x))))
 final_tax6_ab <- as.data.frame(apply(final_tax6_ab,2, function(x){x/sum(x)}))
 sum(final_tax6_ab[,1])
 ```
 
 ### CLUSTERING: 
+
 ```{r}
 OTU <- otu_table(fecal_samples, taxa_are_rows = TRUE)
 TAX <- tax_table(as.matrix(bacteria_taxa))
@@ -113,7 +114,7 @@ physeq2 <- microbiome::aggregate_taxa(physeq, level = "taxonomy6")
 ```
 
 ```{r}
-#df_fecal <- as.data.frame(lapply(df_fecal, as.numeric))
+
 ph <- as.data.frame(otu_table(physeq2))
 #dist_jsd <- philentropy::JSD(t(ph))
 
@@ -221,7 +222,7 @@ myFunc <- function(x)
     to_cut = ifelse(x == 0, "assente", "presente")
   }
   else if (quantile(x)[[3]][1] != 0){
-    to_cut = ifelse(x ==0, "assente", quantcut(x[x!=0],3, labels = c("low","medium","high")))
+    to_cut = ifelse(x == 0, "assente", quantcut(x[x!=0],3, labels = c("low","medium","high")))
   }
   else {
     to_cut = ifelse(x == 0, "assente","presente")
@@ -243,19 +244,9 @@ nutriens2[nutriens2 == 3] <- "high"
 nutriens2[nutriens2 == 2] <- "medium"
 nutriens2[nutriens2 == 1] <- "low"
 
+quantile(nutriens$alcohol_g_ave)
 ``` 
 
-
-```{r}
-distanza <- UniFrac(physeq1, weighted=FALSE, normalized=TRUE, parallel=TRUE, fast=TRUE)
-lista <- c()
-for (i in 1:ncol(nutriens2)){
-  permanova <- vegan::adonis(distanza ~ nutriens2[,i],data = perm_nutriens, permutations=1000, method = "bray")
-  if (unlist(permanova)$`aov.tab.Pr(>F)1` >= 0){
-    lista = append(lista, unlist(permanova)$`aov.tab.Pr(>F)1`)
-  }
-}
-```
 
 
 ```{r}
@@ -282,55 +273,197 @@ strength_nutrients_enterotype2_association = as.matrix(colMeans(nutriens_cl2[,-1
 associations =cbind(strength_nutrients_enterotype1_association,strength_nutrients_enterotype2_association)
 
 heatmap(associations[2:100,])
+
+
+library(tidyr)
+ass_df <- as.data.frame(associations)
+ass_df$Nutrients <- rownames(ass_df)
+ass_df <- ass_df[-1,]
+rownames(ass_df) <- c(1:152)
+prepo <- function(ass_df, n = 1, clu = "1"){
+      ass_clu1 <-  ass_df[,c(n,3)]
+      ass_clu1$cluster <- clu
+      colnames(ass_clu1)[1] <- "Value"
+      return (ass_clu1) 
+}
+  
+ass_clu1 <- prepo(ass_df, n = 1, clu = "1")
+ass_clu2 <- prepo(ass_df, n = 2, clu = "2")
+
+ass_clu <- rbind(ass_clu1,ass_clu2)
+
+library(ggplot2)
+
+ggplot(data = ass_clu,
+       aes(x = cluster, y = Nutrients, fill = Value)) + 
+    geom_raster()  +
+    xlab("Cluster") + 
+    scale_fill_distiller(palette = "RdYlBu") +
+    theme(axis.text.y = element_text(size = 6, angle = 0)) + #element_blank() (#axis.text.x = element_text(),
+    ggtitle("ggplot heatmap")
+
+```
+
+```{r}
+library("phyloseq")
+#plot_bar(physeq, fill = "taxonomy6")
+
+
+#plot_bar(physeq2, fill = "taxonomy6")
+```
+
+```{r}
+library("ape")
+#random_tree = rtree(3393, rooted=TRUE, tip.label=taxa_names(physeq))
+#phy_tax = merge_phyloseq(physeq, random_tree)
+#plot(random_tree,show.tip.label = T)
 ```
 
 
 
 ```{r}
-library("FactoMineR")
-library("factoextra")
+library(splitstackshape)
 
-fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 80))
-fviz_pca_ind(obs.pca, col.ind = cluster_p, 
-             repel = TRUE # Avoid text overlapping (slow if many points)
-             )
+final_for_nutriens = as.data.frame(t(final))
+final_for_nutriens$id = rownames(final_for_nutriens)
+# calcolo abbondanza di final_for_nutriens
+bacteria_taxa
 
-pam.clustering=function(x,k) { # x is a distance matrix and k the number of clusters
-                         require(cluster)
-                         cluster = as.vector(pam(as.dist(x), k, diss=TRUE)$clustering)
-                         return(cluster)
-                        }
-cluster_p = pam.clustering(dist_jsd, k=2)
+taxa_for_nutriens = as.data.frame(final_for_nutriens[,"id"])
+colnames(taxa_for_nutriens) = "taxonomy"
 
-obs.pca=ade4::dudi.pca(as.data.frame(ph), scannf=F, nf = 2)
-obs.bet=ade4::bca(obs.pca, fac=as.factor(cluster_p), scannf=T) 
-ade4::s.class(obs.bet$ls, fac=as.factor(cluster_p), grid=T)
-```
+taxonomy = cSplit(taxa_for_nutriens, "taxonomy", sep=",")
 
+taxonomy = as.data.frame(lapply(taxonomy, as.character),stringsAsFactors=FALSE)
 
+taxonomy$taxonomy_3[is.na(taxonomy$taxonomy_3)] = "c__"
+taxonomy$taxonomy_4[is.na(taxonomy$taxonomy_4)] = "o__"
+taxonomy$taxonomy_5[is.na(taxonomy$taxonomy_5)] = "f__"
+taxonomy$taxonomy_6[is.na(taxonomy$taxonomy_6)] = "g__"
+rownames(taxonomy) = taxa_for_nutriens[,1]
 
 
-
-```{r}
-mds = ade4::dudi.pco(dist_jsd)
-```
-
-
-```{r}
-
-```
+taxa_nutrients = final_for_nutriens[,-ncol(final_for_nutriens)]
+taxa_nutrients = as.data.frame(lapply(taxa_nutrients, function(x) as.numeric(as.character(x))))
+rownames(taxa_nutrients) = final_for_nutriens$id
 
 
-```{r}
-
+taxa_nutrients_ab <- as.data.frame(apply(taxa_nutrients,2,function(x){x/sum(x)}))
+rownames(taxa_nutrients_ab) = final_for_nutriens[,"id"]
 ```
 
 
 ```{r}
+#Prendiamo tutti i taxa senza aggregazione 
+fecal_samples <- apply(fecal_samples,2,function(x){x/sum(x)})
+OTU <- otu_table(fecal_samples, taxa_are_rows = TRUE)
+TAX <- tax_table(as.matrix(bacteria_taxa))
+physeq <- phyloseq(OTU, TAX)
+random_tree = rtree(3393, rooted=TRUE, tip.label=taxa_names(physeq))
+phy_tax = merge_phyloseq(physeq, random_tree)
 
+physeq2 <- microbiome::aggregate_taxa(physeq, level = "taxonomy6")
+
+#Rispetto alla nostra aggregazione con final 
+#OTU <- otu_table(taxa_nutrients_ab, taxa_are_rows = TRUE)
+#TAX <- tax_table(as.matrix(taxonomy))
+#physeq <- phyloseq(OTU, TAX)
+
+
+
+random_tree = rtree(119, rooted=TRUE, tip.label=taxa_names(physeq2))
+plot(random_tree,show.tip.label = F)
+phy_tax = merge_phyloseq(physeq2, random_tree)
+pro <- as.data.frame(otu_table(phy_tax))
+plot_tree(phy_tax)
+```
+
+
+```{r}
+distanza <- UniFrac(phy_tax, weighted=F, normalized=TRUE, parallel=TRUE, fast=TRUE)
+
+get_id <- rownames(as.data.frame(t(otu_table(phy_tax))))
+get_id <- gsub("X","", get_id)
+# Match nutriens id with taxa id samples 
+nut_true <- nutriens2[match(get_id, nutriens2$id),]
+```
+
+```{r}
+lista <- c()
+
+for (i in 2:ncol(nut_true)){
+    perm <- RVAideMemoire::pairwise.perm.manova(distanza,nut_true[,i],nperm=999) 
+    app <- as.vector(perm$p.value)
+    p_val <- min(app[!is.na(app)]) 
+    lista = append(lista,p_val)
+}
+``` 
+
+```{r}
+library(brainwaver)
+pvalue.thresh <-compute.FDR(lista,q = .25)
+```
+
+
+```{r}
+length(lista[lista <= 0.25])
+
+df_lista <- as.data.frame(lista)
+df_lista$column <- c(1:152)
+
+df_li <- subset(df_lista, lista <= 0.25)
+
+
+nut_true2 <- nutriens[,1:ncol(nutriens)]
+final_nutriens <- nut_true2[,c(1,df_li$column)]
+
+``` 
+
+
+
+```{r}
+#Correlazione di Spearman 
+corr <- cor.test(x=cars$speed, y=cars$dist, method = 'spearman')
+
+
+col <- colorRampPalette(c("darkblue", "white", "darkorange"))(20)
+M <- cor(mtcars[1:7])
+heatmap(x = M, col = col, symm = TRUE)
+```
+
+
+
+```{r}
+#Unione df nutrienti selezionati dopo Permanova con il df che ha la variabile target bmi
+
+final_nutriens$id <- gsub("1011.C.", "", final_nutriens$id)
+
+final_nutriens$id <- gsub(".01.P\\d|.01.S\\d", "", final_nutriens$id)
+
+final_nutriens
+
+bmi_df <- readxl::read_excel("bmi calculation with bmicategories.xlsx")
+colnames(bmi_df)[1] <- "id"
+
+bmi_nutriens <- merge(final_nutriens, bmi_df, by = "id", sort = F)
 ```
 
 
 ```{r}
 ```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+
 
