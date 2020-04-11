@@ -3,27 +3,68 @@ title: "Hdda2"
 output: html_document
 ---
 
+# IMPORT LIBRARIES
+
 ```{r setup, include=FALSE}
-#library("rbiom")
+
 library("biomformat")
 library("phyloseq")
 library("microbiome")
 library("vegan")
 library("gplots")
+library("gtools")
+library("RVAideMemoire")
+library("reshape2")
+library("ggplot2")
+library("corrplot")
+library("tidyr")
+#library("ape")
+library("splitstackshape")
+library("readxl")
 ```
 
+# DATA IMPORT
 ```{r}
+# Import OTU table and nutrients data
+
 biom <- read_biom("datasets/221_otu_table.biom")
-summary(biom)
-show(biom)
+bacteria_taxa = observation_metadata(biom)
+map_nutrients <- read.csv("datasets/46764_mapping_file.txt", sep = "\t")
+
+fecal_samples = as(biom_data(biom), "matrix")
+fecal_samples_data <- as.data.frame(fecal_samples)
+fecal_samples_data$id <- rownames(fecal_samples_data)
 ```
 
-
 ```{r}
-fecal_samples = as(biom_data(biom), "matrix")
-## taxonomic rank: 
-# species -genus -family-class- phylum 
-bacteria_taxa = observation_metadata(biom)
+# Creation of phylogenetic tree starting from all 3393 bacteria.
+fecal_samples_abundances <- apply(fecal_samples,2,function(x){x/sum(x)})
+OTU <- otu_table(fecal_samples_abundances, taxa_are_rows = TRUE)
+TAX <- tax_table(as.matrix(bacteria_taxa))
+physeq <- phyloseq(OTU, TAX)
+random_tree = rtree(3393, rooted=TRUE, tip.label=taxa_names(physeq))
+phy_tax = merge_phyloseq(physeq, random_tree)
+
+
+# Creation of phylogenertic tree starting from only 6th taxonomy level (genera).
+
+physeq_genera <- aggregate_taxa(physeq, level = "taxonomy6")
+
+#Rispetto alla nostra aggregazione con final 
+#OTU <- otu_table(taxa_nutrients_ab, taxa_are_rows = TRUE)
+#TAX <- tax_table(as.matrix(taxonomy))
+#physeq <- phyloseq(OTU, TAX)
+
+
+
+random_tree_genera = rtree(119, rooted=TRUE, tip.label=taxa_names(physeq_genera))
+plot(random_tree_genera,show.tip.label = F)
+phy_tax_genera = merge_phyloseq(physeq_genera, random_tree_genera)
+```
+
+# DATA PREPROCESSING
+```{r}
+# Cleaning bacteria_taxa data (removed "[" and "]" in taxa names).
 
 bacteria_taxa$taxonomy2 <- gsub("\\[|\\]", "", bacteria_taxa$taxonomy2)
 bacteria_taxa$taxonomy3 <- gsub("\\[|\\]", "", bacteria_taxa$taxonomy3)
@@ -34,267 +75,336 @@ bacteria_taxa$taxonomy6 <- gsub("\\[|\\]", "", bacteria_taxa$taxonomy6)
 
 
 ```{r}
+# Divide taxonomy table into 5 different levels tables based on taxonomy rank:
+# tax2 contains only kingdom and phylum and its name associated
+# tax3 contains only kingdom, phylum, class and its name associated
+# ... and so on until genera level
+
 tax2 <- bacteria_taxa[,c("taxonomy1","taxonomy2")]
 tax2["id"] <- rownames(tax2)
-tax2["merge"] <- tidyr::unite(tax2[,-ncol(tax2)],"merge_type",sep = ",")
+tax2["name"] <- tidyr::unite(tax2[,-ncol(tax2)],"merge_type",sep = ",")
 
 tax3 <- bacteria_taxa[,c("taxonomy1","taxonomy2", "taxonomy3")]
 tax3["id"] <- rownames(tax3)
-tax3["merge"] <- tidyr::unite(tax3[,-ncol(tax3)],"merge_type",sep = ",")
+tax3["name"] <- tidyr::unite(tax3[,-ncol(tax3)],"merge_type",sep = ",")
 
 tax4 <- subset(bacteria_taxa[,c(1:4)], taxonomy4 != "o__")
 tax4["id"] <- rownames(tax4)
-tax4["merge"] <- tidyr::unite(tax4[,-ncol(tax4)],"merge_type",sep = ",")
+tax4["name"] <- tidyr::unite(tax4[,-ncol(tax4)],"merge_type",sep = ",")
 
 tax5 <- subset(bacteria_taxa[,c(1:5)], taxonomy5 != "f__")
 tax5["id"] <- rownames(tax5)
-tax5["merge"] <- tidyr::unite(tax5[,-ncol(tax5)],"merge_type",sep = ",")
+tax5["name"] <- tidyr::unite(tax5[,-ncol(tax5)],"merge_type",sep = ",")
 
 tax6 <- subset(bacteria_taxa[,c(1:6)], taxonomy6 != "g__")
 tax6["id"] <- rownames(tax6)
-tax6["merge"] <- tidyr::unite(tax6[,-ncol(tax6)],"merge_type",sep = ",")
+tax6["name"] <- tidyr::unite(tax6[,-ncol(tax6)],"merge_type",sep = ",")
 ```
 
 ```{r}
-tax2[,c("taxonomy1","taxonomy2")] <- list(NULL)
-tax3[,c("taxonomy1","taxonomy2","taxonomy3")] <- list(NULL)
-tax4[,c("taxonomy1","taxonomy2","taxonomy3","taxonomy4")] <- list(NULL)
-tax5[,c("taxonomy1","taxonomy2","taxonomy3","taxonomy4","taxonomy5")] <- list(NULL)
-tax6[,c("taxonomy1","taxonomy2","taxonomy3","taxonomy4","taxonomy5","taxonomy6")] <- list(NULL)
-```
+# Delete taxonomies in each sub-dataframe to have only bacteria taxa names
 
-
-```{r}
-df_fecal <- as.data.frame(fecal_samples)
-df_fecal$id <- rownames(df_fecal)
+taxa2 = tax2[,-c(1,2)]
+taxa3 = tax3[,-c(1:3)]
+taxa4 = tax4[,-c(1:4)]
+taxa5 = tax5[,-c(1:5)]
+taxa6 = tax6[,-c(1:6)]
 ```
 
 
 ```{r}
+# Function to prepare data to be used. The function prepare_data takes in input a table that contains id and taxonomy name and matches names in fecal_samples_data to build a dataframe in wich rows are patients and columns are bacteria names based on selected taxonomy (taxa2 has kingdom and phylum, taxa3 kingdom, phylum and class, ...).
+
 library(dplyr)
-prepare_data <- function(tax2){
-  fec_tax2 <- as.data.frame(merge(df_fecal,tax2,by="id", sort = F))
-  fec_tax2$id <- NULL
-  fec_tax2 <- fec_tax2 %>% group_by(merge) %>% summarize_all(sum) 
-  fec_tax2 <- as.data.frame(t(fec_tax2))
-  colnames(fec_tax2) <- as.character(unlist(fec_tax2[1,]))
-  fec_tax2 <- fec_tax2[-1,]
-  return(fec_tax2)
-}
-```
-
-```{r}
-final_tax2 <- as.data.frame(prepare_data(tax2))
-final_tax3 <- as.data.frame(prepare_data(tax3))
-final_tax4 <- as.data.frame(prepare_data(tax4))
-final_tax5 <- as.data.frame(prepare_data(tax5))
-final_tax6 <- as.data.frame(prepare_data(tax6))
-final <- cbind(final_tax2, final_tax3, final_tax4, final_tax5, final_tax6)
-as.data.frame(t(final))
-```
-
-
-```{r}
-final_tax6_ab <- as.data.frame(t(final_tax6))
-final_tax6_ab <- as.data.frame(lapply(final_tax6_ab,function(x) as.numeric(as.character(x))))
-final_tax6_ab <- as.data.frame(apply(final_tax6_ab,2, function(x){x/sum(x)}))
-sum(final_tax6_ab[,1])
-```
-
-### CLUSTERING: 
-
-```{r}
-OTU <- otu_table(fecal_samples, taxa_are_rows = TRUE)
-TAX <- tax_table(as.matrix(bacteria_taxa))
-physeq <- phyloseq(OTU, TAX)
-```
-
-```{r}
-physeq2 <- microbiome::aggregate_taxa(physeq, level = "taxonomy6")
-```
-
-```{r}
-
-ph <- as.data.frame(otu_table(physeq2))
-#dist_jsd <- philentropy::JSD(t(ph))
-
-dist_jsd <- phyloseq::distance(physeq2, method = "jsd")
-
-
-for (i in 2:20){
-  clu <- cluster::pam(dist_jsd,i,diss = T, metric = "euclidean")
-  print(clu$silinfo$avg.width)
+prepare_data <- function(taxonomy_table){
+  fecal_samples_by_taxa <- as.data.frame(merge(fecal_samples_data,taxonomy_table,by="id", sort = F))
+  fecal_samples_by_taxa$id <- NULL
+  fecal_samples_by_taxa <- fecal_samples_by_taxa %>% group_by(name) %>% summarize_all(sum) 
+  fecal_samples_by_taxa <- as.data.frame(t(fecal_samples_by_taxa))
+  colnames(fecal_samples_by_taxa) <- as.character(unlist(fecal_samples_by_taxa[1,]))
+  fecal_samples_by_taxa <- fecal_samples_by_taxa[-1,]
+  return(fecal_samples_by_taxa)
 }
 
-heatmap(as.matrix(dist_jsd))
-
-data_pca = as.data.frame(t(ph))
-```
+# Application of the function prepare_data to taxa2,taxa3,...,taxa6 and concatenation of those dataframe to obtain a final dataframe with all possible taxonomies from the OTU table used.
+# The final table has 100 individuals on rows and 198 columns representing each possible combination of bacteria taxa.
 
 
-```{r}
-nclusters=NULL
-for (k in 2:20) { 
-			clu <- cluster::pam(dist_jsd,k,diss = T, metric = "manhattan")
-			nclusters[k-1]= clu$silinfo$avg.width
-	}
-plot(nclusters, type="h", xlab="k clusters", ylab="Average Silhouette width", main = "PAM clustering assessment")
-```
-
-
-```{r}
-library("corrplot")
-clu <- cluster::pam(dist_jsd,2,diss = T, metric = "euclidean") #get cluster 
-
-mds <- cmdscale(dist_jsd,eig=TRUE, k=2) # k is the number of dim
-variance_explained_mds = mds$GOF # cumulative percentage of variance explained by first 2 dimensions
-x <- mds$points[,1]
-y <- mds$points[,2]
-plot (x,y,col=cluster_p, ylim = c(-0.8,0.8))
-
-mds # view results
-
-# plot solution
-clu$medoids
-medoid_cl1 = mds$points[rownames(mds$points) == clu$medoids[1],]
-medoid_cl2 = mds$points[rownames(mds$points) == clu$medoids[2],]
-
-data_mds = as.data.frame(mds$points)
-colnames(data_mds) = c("x","y")
-
-plot(x, y, main = "Multi Dimensional Scaling plot",col=cluster_p,pch=1)
-points(medoid_cl1,pch=19)
-points(medoid_cl2,pch=19)
+taxa_table_2 <- as.data.frame(prepare_data(taxa2))
+taxa_table_3 <- as.data.frame(prepare_data(taxa3))
+taxa_table_4 <- as.data.frame(prepare_data(taxa4))
+taxa_table_5 <- as.data.frame(prepare_data(taxa5))
+taxa_table_6 <- as.data.frame(prepare_data(taxa6))
+taxa_table <- cbind(taxa_table_2, taxa_table_3, taxa_table_4, taxa_table_5, taxa_table_6)
 ```
 
 ```{r}
-# differenze tra i cluster
-data_pca$cluster = clu$clustering
-cluster1 = data_pca[data_pca$cluster == 1,]
-cluster2 = data_pca[data_pca$cluster == 2,]
-
-cluster1_ab <- as.data.frame(t(apply(cluster1,1, function(x){x/sum(x)})))
-cluster2_ab = as.data.frame(t(apply(cluster2,1, function(x){x/sum(x)})))
-
-# si selezionano prevotella e bacteroides nei due cluster (da rivedere la scelta dei generi)
-prevotella_cl1 = cluster1_ab$k__Bacteria_p__Bacteroidetes_c__Bacteroidia_o__Bacteroidales_f__Prevotellaceae_g__Prevotella
-prevotella_cl2 = cluster2_ab$k__Bacteria_p__Bacteroidetes_c__Bacteroidia_o__Bacteroidales_f__Prevotellaceae_g__Prevotella
-bacteroides_cl1 = cluster1_ab$g__Bacteroides
-bacteroides_cl2 = cluster2_ab$g__Bacteroides
-
-# boxplot sull'abundance di Bacteroides
-boxplot(bacteroides_cl1,bacteroides_cl2, main= "Abundance Bacteroides in two clusters")
-
-# Boxplot sull'abundance di Prevotella
-boxplot(prevotella_cl1,prevotella_cl2, main = "Abundance Prevotella in two clusters")
+#final_tax6_ab <- as.data.frame(t(taxa_table_6))
+#final_tax6_ab <- as.data.frame(lapply(taxa_table_6,function(x) as.numeric(as.character(x))))
+#final_tax6_ab <- as.data.frame(apply(taxa_table_6,2, function(x){x/sum(x)}))
+#sum(final_tax6_ab[,1])
 ```
-#### Discretizzazione variabili dei nutrienti: 
+
+#### SELECT NUTRIENTS
 ```{r}
-map_nutriens <- read.csv("datasets/46764_mapping_file.txt", sep = "\t")
-numeric_cols <- unlist(lapply(map_nutriens, is.numeric))  
 
-nut = map_nutriens[ , numeric_cols]
+is_numeric_nutrients_col <- unlist(lapply(map_nutrients, is.numeric)) # selected numeric columns in map_nutrients data
 
-nut[,c("lib_reads_seqd","run_date","qiita_prep_id","age","anonymized_name","data_gen_ncc_database_ave",
+numeric_nutrients_column = map_nutrients[ , is_numeric_nutrients_col] # map_nutrients containing only numeric columns
+
+# Selection of only nutrients columns, deleting age, id and other information.
+
+numeric_nutrients_column[,c("lib_reads_seqd","run_date","qiita_prep_id","age","anonymized_name","data_gen_ncc_database_ave",
                      "data_ncc_database_version","data_software_version_ave","day_of_intake","dri_life_stage_rda_cat",
                      "elevation","energy_kcal_ave","energy_kj_ave","host_subject_id","host_taxid","intake_amount",
                      "intake_reliability","latitude","longitude","perc_cal_from_protein_ave","perc_cal_from_pufa_ave",
                      "perc_cal_from_sfa_ave","polyunsatsat_fat_ratio_ave","qiita_study_id","taxon_id","visit_number")] <- list(NULL)
 
-nutriens = cbind(map_nutriens$X.SampleID,nut)
-names(nutriens)[1] = "id"
-nutriens = nutriens[vapply(nutriens, function(x) length(unique(x)) > 1, logical(1L))]
-to_levels <- gtools::quantcut(nutriens$aspartic_acid_g_ave,3,labels = c("low", "medium","high"))
+patients_ids <- rownames(as.data.frame(t(otu_table(phy_tax))))
+patients_ids <- gsub("X","", patients_ids)
 
-library(gtools)
-                   
-to_quantile <- function(x){
-    to_cut <- quantcut(x,3,labels = c("low", "medium","high"))
-    try(to_cut <- quantcut(x,2,labels = c("very_low", "medium")), silent = TRUE)
-    
 
-  return (to_cut)
-}    
-#(quantile(x)[[1]][1] == 0) & (quantile(x)[[2]][1] == 0) & (quantile(x)[[3]][1] == 0) &
-myFunc <- function(x)
+# Delete nutrients with constant value around all subjects and add id patients column.
+nutrients_samples = numeric_nutrients_column[vapply(numeric_nutrients_column, function(x) length(unique(x)) > 1, logical(1L))]
+nutrients_samples$id = map_nutrients$X.SampleID
+
+nutrients_continuous <- nutrients_samples[match(patients_ids, nutrients_samples$id),]
+rownames(nutrients_continuous) = nutrients_continuous$id
+nutrients_continuous = nutrients_continuous[,-ncol(nutrients_continuous)]
+
+# Function to discretize nutrients based on their values
+
+to_quantile <- function(x)
 {
   if (quantile(x)[[4]][1] == 0){
-    to_cut = ifelse(x == 0, "assente", "presente")
+    to_cut = ifelse(x == 0, "absent", "present")
   }
   else if (quantile(x)[[3]][1] != 0){
     to_cut = ifelse(x == 0, "assente", quantcut(x[x!=0],3, labels = c("low","medium","high")))
   }
   else {
-    to_cut = ifelse(x == 0, "assente","presente")
+    to_cut = ifelse(x == 0, "absent","present")
   }
   return (to_cut)
 }
 
+# Create discretized nutrients data frame
 
-nutriens2 <- nutriens
-#nutriens2 <- nutriens2[,-c(51,52)]
-#nutriens2<- nutriens2[,-116] 
-
-for(i in 2:ncol(nutriens2)){
-  app <- myFunc(nutriens2[,i])                                 
-  nutriens2[,i] <- app
+nutrients_discretized <- nutrients_continuous
+for(i in 1:ncol(nutrients_discretized)){
+  app <- to_quantile(nutrients_discretized[,i])                                 
+  nutrients_discretized[,i] <- app
 }
 
-nutriens2[nutriens2 == 3] <- "high"
-nutriens2[nutriens2 == 2] <- "medium"
-nutriens2[nutriens2 == 1] <- "low"
-
-quantile(nutriens$alcohol_g_ave)
+nutrients_discretized[nutrients_discretized == 3] <- "high"
+nutrients_discretized[nutrients_discretized == 2] <- "medium"
+nutrients_discretized[nutrients_discretized == 1] <- "low"
 ``` 
 
+```{r}
+set.seed(123)
+# Compute microbiome distance based on all possible 3393 bacteria in each patient microbiome. Used unweighted unifrac distance.
+microbiome_distance <- UniFrac(phy_tax, weighted=FALSE, normalized=TRUE, parallel=TRUE, fast=TRUE)
+
+# Compute pairwise permnova on nutrients levels to select only nutrients associated with gut microbiome at an FDR level 0f 25%.
+
+fdr_list <- c()
+for (i in 1:ncol(nutrients_discretized)){
+    pairwise_permanova <- pairwise.perm.manova(microbiome_distance,nutrients_discretized[,i],nperm=199,  p.method = "fdr") 
+    fdr_nutrient_levels <- as.vector(pairwise_permanova$p.value)
+    fdr <- min(fdr_nutrient_levels[!is.na(fdr_nutrient_levels)]) 
+    fdr_list = append(fdr_list,fdr)
+}
+
+n_nutrients = length(fdr_list[fdr_list <= 0.25])
+
+selected_fdr_indexes = which(fdr_list <=.25)
+
+
+# Final nutrients table according to FDR <= 0.25 criterion: 101 nutrients selected
+final_nutrients = nutrients_continuous[,selected_fdr_indexes]
+``` 
+
+# SELECT TAXA
+
+```{r}
+# Extraction of all possible bacteria taxa from taxa_table which respect 2 criteria:
+# - abundance >= 0.2%
+# - presnet in at least 10% of patients (= 10 patients).
+
+extract_taxa = function(final){
+  final <- as.data.frame(t(final))
+  final2 = as.data.frame(lapply(final,function(x) as.numeric(as.character(x))))
+  rownames(final2) = rownames(final)
+  final_ab <- as.data.frame(apply(final2,2, function(x){100*x/sum(x)}))
+  ab_filter = apply(final_ab,1,function(x) length(which(x >=0.2))>=1)
+  filtered_df = final_ab[ab_filter,]
+  percent_filter = apply(filtered_df,1,function(x) length(which(x!=0))>10)
+  selected_bacteria_taxa = filtered_df[percent_filter,]
+  selected_bacteria = as.data.frame(t(selected_bacteria_taxa))
+  rownames(selected_bacteria) = gsub("X","", rownames(selected_bacteria))
+  return (selected_bacteria)
+}
+
+selected_taxa = extract_taxa(taxa_table)
+
+selected_taxa_names = colnames(selected_taxa)
+
+```
+
+# HEATMAP CORRELATION NUTRIENTS - TAXA
+
+```{r}
+# Creating Heatmap with correlation between 101 selected nutrients and 76 selected taxa.
+microbiome_nutrients_data = merge(selected_taxa,final_nutrients,by=0)
+rownames(microbiome_nutrients_data) = microbiome_nutrients_data[,1]
+microbiome_nutrients_data[,c("Row.names")] <- list(NULL)
+
+nutrients_microbiome_correlations = cor(microbiome_nutrients_data,method="spearman")[1:ncol(selected_taxa),(ncol(selected_taxa)+1):ncol(microbiome_nutrients_data)]
+
+
+correlation_data <- melt(nutrients_microbiome_correlations)
+names(correlation_data) = c("Taxa","Nutrient","correlation")
+
+ggplot(data = correlation_data, aes(x=Nutrient, y=Taxa, fill=correlation)) + 
+  geom_tile() +
+  scale_fill_gradient2(low="darkblue", high="red", guide="colorbar")
+
+# ATTENZIONE: i risultati della nostra heatmap sono diversi rispetto a quelli del paper: bacteroides poco correlato con i nutrienti da noi, mentre nel paper molto correlato. Verificare questa cosa!
+
+```
+
+### CLUSTERING: 
+
+```{r}
+# Aggregating taxa by 6th taxonomy level (i.e. genera): 119 taxa obtained. These taxa will be used to cluster microbiomes and analyze enterotypes.
+physeq_genera <- microbiome::aggregate_taxa(physeq, level = "taxonomy6")
+otu_table_genera <- as.data.frame(t(otu_table(physeq_genera)))
+```
+
+# DISTANCE BETWEEN MICROBIOMES BASED ON 6th TAXA AGGREGATION
+```{r}
+# Compute Jensen Shannone divergence matrix on gut microbiomes based on 119 taxa obtained.
+
+dist_jsd <- phyloseq::distance(physeq_genera, method = "jsd")
+
+# Compute PAM Partitioning Around Medoids clustering on distance matrix just obtained. Then evaluating the best number of clusters from 1 to 20 based on Silhouette Coefficient.
+nclusters=c()
+for (k in 2:20) { 
+			clu <- cluster::pam(dist_jsd,k,diss = T, metric = "manhattan")
+			nclusters[k-1]= clu$silinfo$avg.width
+	}
+plot(nclusters, type="h", xlab="k clusters", ylab="Average Silhouette width", main = "PAM clustering assessment")
+
+# Heatmap of distance between sample 
+heatmap(as.matrix(dist_jsd))
+
+```
+
+```{r}
+# Selected clustering method with 2 clusters.
+selected_clustering <- cluster::pam(dist_jsd,2,diss = T, metric = "euclidean") #get cluster 
+cluster_assignment = as.vector(selected_clustering$clustering)
+
+# Perform multidimensional scaling on JSD matrix
+multidimensional_scaling <- cmdscale(dist_jsd,eig=TRUE, k=2) # k is the number of dim
+
+# cumulative percentage of variance explained by first 2 dimensions
+cumulative_variance_explained_mds = multidimensional_scaling$GOF 
+
+# Plot individuals in two cluster on 2 dimension from MDS output
+x <- multidimensional_scaling$points[,1]
+y <- multidimensional_scaling$points[,2]
+plot (x,y,col=cluster_assignment, ylim = c(-0.5,0.5),pch=19)
+
+# Individuate medoids
+selected_clustering$medoids
+medoid_cl1 = multidimensional_scaling$points[rownames(multidimensional_scaling$points) == selected_clustering$medoids[1],]
+medoid_cl2 = multidimensional_scaling$points[rownames(multidimensional_scaling$points) == selected_clustering$medoids[2],]
+
+# ATTENZIONE: plottare meglio i dati: mettere i medoidi e ellissi..
+```
+
+```{r}
+# differenze tra i cluster
+
+patients_clusters = as.data.frame(selected_clustering$clustering)
+names(patients_clusters) = "cluster"
+
+table_taxa_clusters = merge(otu_table_genera, patients_clusters, by = 0)
+rownames(table_taxa_clusters) = table_taxa_clusters$Row.names
+table_taxa_clusters[,'Row.names'] <- list(NULL)
+
+cluster1 = table_taxa_clusters[table_taxa_clusters$cluster == 1,]
+cluster2 = table_taxa_clusters[table_taxa_clusters$cluster == 2,]
+
+cluster1_abundances <- as.data.frame(t(apply(cluster1,1, function(x){x/sum(x)})))
+cluster2_abundances = as.data.frame(t(apply(cluster2,1, function(x){x/sum(x)})))
+
+# Select abundances of bacteroides and prevotella genera in cluster 1 and cluster 2
+prevotella_cl1 = cluster1_abundances$g__Prevotella # ATTENZIONE: esiste anche [Prevotella]! va fatta pulizia dopo la funzione aggregate_taxa
+prevotella_cl2 = cluster2_abundances$g__Prevotella
+bacteroides_cl1 = cluster1_abundances$g__Bacteroides
+bacteroides_cl2 = cluster2_abundances$g__Bacteroides
+
+# boxplot on Bacteroides abundance difference between groups
+boxplot(bacteroides_cl1,bacteroides_cl2, main= "Abundance Bacteroides in two clusters")
+
+# Boxplot on Prevotella abundance difference between groups
+boxplot(prevotella_cl1,prevotella_cl2, main = "Abundance Prevotella in two clusters")
+```
+
+# ASSOCIATIONS NUTRIENTS - ENTEROTYPE CLUSTERS
 
 
 ```{r}
-# merge nutriens dataset with data_pca dataset
+# merge nutrients dataset with data_pca dataset
 
+
+# Function to standardize nutrients dataframe
 standardize = function(col){
   col <- (col - mean(col)) / sd(col)
   return (col)
 }
-standardized_nutriens = as.data.frame(apply(nutriens[,-1],2,standardize))
-standardized_nutriens$id = nutriens[,1]
+standardized_nutriens = as.data.frame(apply(final_nutrients[,-1],2,standardize))
+standardized_nutriens$id = rownames(final_nutrients)
 
-data_pca$id = rownames(data_pca)
-subject_clusters = data_pca[,c("id","cluster")]
+table_taxa_clusters$id = rownames(table_taxa_clusters)
+subject_clusters = table_taxa_clusters[,c("id","cluster")]
 
+# Merging cluster assignment and standardized nutrients based on patient id. Then divided subjects that belongs to specific cluster.
 nutriens_with_clusters = merge(subject_clusters,standardized_nutriens,by="id")
 nutriens_cl1 = nutriens_with_clusters[nutriens_with_clusters$cluster==1,]
 nutriens_cl2 = nutriens_with_clusters[nutriens_with_clusters$cluster==2,]
 
-# verify nutrients - enterotype association
 
+# Compute trenght of associations between enterotype cluster and nutrients.
 strength_nutrients_enterotype1_association = as.matrix(colMeans(nutriens_cl1[,-1]))
 strength_nutrients_enterotype2_association = as.matrix(colMeans(nutriens_cl2[,-1]))
-associations =cbind(strength_nutrients_enterotype1_association,strength_nutrients_enterotype2_association)
+associations = cbind(strength_nutrients_enterotype1_association,strength_nutrients_enterotype2_association)
 
-heatmap(associations[2:100,])
+associations_data <- as.data.frame(associations)
+associations_data$Nutrients <- rownames(associations_data)
+associations_data <- associations_data[-1,]
+rownames(associations_data) <- c(1:nrow(associations_data))
 
 
-library(tidyr)
-ass_df <- as.data.frame(associations)
-ass_df$Nutrients <- rownames(ass_df)
-ass_df <- ass_df[-1,]
-rownames(ass_df) <- c(1:152)
-prepo <- function(ass_df, n = 1, clu = "1"){
-      ass_clu1 <-  ass_df[,c(n,3)]
-      ass_clu1$cluster <- clu
-      colnames(ass_clu1)[1] <- "Value"
-      return (ass_clu1) 
+
+associate_cluster_to_nutrients <- function(data, n, cluster){
+      data_modified <-  data[,c(n,3)]
+      data_modified$cluster <- cluster
+      colnames(data_modified)[1] <- "Value"
+      return (data_modified) 
 }
   
-ass_clu1 <- prepo(ass_df, n = 1, clu = "1")
-ass_clu2 <- prepo(ass_df, n = 2, clu = "2")
+associations_cl1 <- associate_cluster_to_nutrients(associations_data, n = 1, cluster = "1")
+associations_cl2 <- associate_cluster_to_nutrients(associations_data, n = 2, cluster = "2")
 
-ass_clu <- rbind(ass_clu1,ass_clu2)
+associations_nutrients_cluster <- rbind(associations_cl1,associations_cl2)
 
-library(ggplot2)
 
-ggplot(data = ass_clu,
+# Heatmap of associations enterotype clusters - nutrients
+ggplot(data = associations_nutrients_cluster,
        aes(x = cluster, y = Nutrients, fill = Value)) + 
     geom_raster()  +
     xlab("Cluster") + 
@@ -304,122 +414,24 @@ ggplot(data = ass_clu,
 
 ```
 
-```{r}
-library("phyloseq")
-#plot_bar(physeq, fill = "taxonomy6")
-
-
-#plot_bar(physeq2, fill = "taxonomy6")
-```
+# MERGING DATAFRAME WITH DEMOGRAPHICAL VARS AND BMI WITH NUTRIENTS (and/or bacteria taxa)
 
 ```{r}
-library("ape")
-#random_tree = rtree(3393, rooted=TRUE, tip.label=taxa_names(physeq))
-#phy_tax = merge_phyloseq(physeq, random_tree)
-#plot(random_tree,show.tip.label = T)
-```
+#Unione df nutrienti selezionati dopo Permanova con il df che ha la variabile target bmi
 
+final_nutrients$id <- gsub("1011.C.", "", rownames(final_nutrients))
 
+final_nutrients$id <- gsub(".01.P\\d|.01.S\\d", "", final_nutrients$id)
 
-```{r}
-library(splitstackshape)
+bmi_df <- read_excel("datasets/bmi calculation with bmicategories.xlsx")
+colnames(bmi_df)[1] <- "id"
 
-final_for_nutriens = as.data.frame(t(final))
-final_for_nutriens$id = rownames(final_for_nutriens)
-# calcolo abbondanza di final_for_nutriens
-bacteria_taxa
-
-taxa_for_nutriens = as.data.frame(final_for_nutriens[,"id"])
-colnames(taxa_for_nutriens) = "taxonomy"
-
-taxonomy = cSplit(taxa_for_nutriens, "taxonomy", sep=",")
-
-taxonomy = as.data.frame(lapply(taxonomy, as.character),stringsAsFactors=FALSE)
-
-taxonomy$taxonomy_3[is.na(taxonomy$taxonomy_3)] = "c__"
-taxonomy$taxonomy_4[is.na(taxonomy$taxonomy_4)] = "o__"
-taxonomy$taxonomy_5[is.na(taxonomy$taxonomy_5)] = "f__"
-taxonomy$taxonomy_6[is.na(taxonomy$taxonomy_6)] = "g__"
-rownames(taxonomy) = taxa_for_nutriens[,1]
-
-
-taxa_nutrients = final_for_nutriens[,-ncol(final_for_nutriens)]
-taxa_nutrients = as.data.frame(lapply(taxa_nutrients, function(x) as.numeric(as.character(x))))
-rownames(taxa_nutrients) = final_for_nutriens$id
-
-
-taxa_nutrients_ab <- as.data.frame(apply(taxa_nutrients,2,function(x){x/sum(x)}))
-rownames(taxa_nutrients_ab) = final_for_nutriens[,"id"]
+bmi_nutrients <- merge(bmi_df, final_nutrients, by = "id", sort = F)
 ```
 
 
-```{r}
-#Prendiamo tutti i taxa senza aggregazione 
-fecal_samples <- apply(fecal_samples,2,function(x){x/sum(x)})
-OTU <- otu_table(fecal_samples, taxa_are_rows = TRUE)
-TAX <- tax_table(as.matrix(bacteria_taxa))
-physeq <- phyloseq(OTU, TAX)
-random_tree = rtree(3393, rooted=TRUE, tip.label=taxa_names(physeq))
-phy_tax = merge_phyloseq(physeq, random_tree)
 
-physeq2 <- microbiome::aggregate_taxa(physeq, level = "taxonomy6")
-
-#Rispetto alla nostra aggregazione con final 
-#OTU <- otu_table(taxa_nutrients_ab, taxa_are_rows = TRUE)
-#TAX <- tax_table(as.matrix(taxonomy))
-#physeq <- phyloseq(OTU, TAX)
-
-
-
-random_tree = rtree(119, rooted=TRUE, tip.label=taxa_names(physeq2))
-plot(random_tree,show.tip.label = F)
-phy_tax = merge_phyloseq(physeq2, random_tree)
-pro <- as.data.frame(otu_table(phy_tax))
-plot_tree(phy_tax)
-```
-
-
-```{r}
-distanza <- UniFrac(phy_tax, weighted=F, normalized=TRUE, parallel=TRUE, fast=TRUE)
-
-get_id <- rownames(as.data.frame(t(otu_table(phy_tax))))
-get_id <- gsub("X","", get_id)
-# Match nutriens id with taxa id samples 
-nut_true <- nutriens2[match(get_id, nutriens2$id),]
-```
-
-```{r}
-lista <- c()
-
-for (i in 2:ncol(nut_true)){
-    perm <- RVAideMemoire::pairwise.perm.manova(distanza,nut_true[,i],nperm=999) 
-    app <- as.vector(perm$p.value)
-    p_val <- min(app[!is.na(app)]) 
-    lista = append(lista,p_val)
-}
-``` 
-
-```{r}
-library(brainwaver)
-pvalue.thresh <-compute.FDR(lista,q = .25)
-```
-
-
-```{r}
-length(lista[lista <= 0.25])
-
-df_lista <- as.data.frame(lista)
-df_lista$column <- c(1:152)
-
-df_li <- subset(df_lista, lista <= 0.25)
-
-
-nut_true2 <- nutriens[,1:ncol(nutriens)]
-final_nutriens <- nut_true2[,c(1,df_li$column)]
-
-``` 
-
-
+# PROVE e TEST VARI (non necessari ma potenzialmente utili)
 
 ```{r}
 #Correlazione di Spearman 
@@ -431,38 +443,38 @@ M <- cor(mtcars[1:7])
 heatmap(x = M, col = col, symm = TRUE)
 ```
 
-
-
 ```{r}
-#Unione df nutrienti selezionati dopo Permanova con il df che ha la variabile target bmi
+# final_for_nutriens = as.data.frame(t(final))
+# final_for_nutriens$id = rownames(final_for_nutriens)
+# # calcolo abbondanza di final_for_nutriens
+# bacteria_taxa
+# 
+# taxa_for_nutriens = as.data.frame(final_for_nutriens[,'id'])
+# colnames(taxa_for_nutriens) = 'taxonomy'
+# 
+# taxonomy = cSplit(taxa_for_nutriens, 'taxonomy', sep=',')
+# 
+# taxonomy = as.data.frame(lapply(taxonomy, as.character),stringsAsFactors=FALSE)
+# 
+# taxonomy$taxonomy_3[is.na(taxonomy$taxonomy_3)] = 'c__'
+# taxonomy$taxonomy_4[is.na(taxonomy$taxonomy_4)] = 'o__'
+# taxonomy$taxonomy_5[is.na(taxonomy$taxonomy_5)] = 'f__'
+# taxonomy$taxonomy_6[is.na(taxonomy$taxonomy_6)] = 'g__'
+# rownames(taxonomy) = taxa_for_nutriens[,1]
+# 
+# 
+# taxa_nutrients = final_for_nutriens[,-ncol(final_for_nutriens)]
+# taxa_nutrients = as.data.frame(lapply(taxa_nutrients, function(x) as.numeric(as.character(x))))
+# rownames(taxa_nutrients) = final_for_nutriens$id
+# 
+# 
+# taxa_nutrients_ab <- as.data.frame(apply(taxa_nutrients,2,function(x){x/sum(x)}))
+# rownames(taxa_nutrients_ab) = final_for_nutriens[,'id']
 
-final_nutriens$id <- gsub("1011.C.", "", final_nutriens$id)
-
-final_nutriens$id <- gsub(".01.P\\d|.01.S\\d", "", final_nutriens$id)
-
-final_nutriens
-
-bmi_df <- readxl::read_excel("datasets/bmi calculation with bmicategories.xlsx")
-colnames(bmi_df)[1] <- "id"
-
-bmi_nutriens <- merge(final_nutriens, bmi_df, by = "id", sort = F)
 ```
 
 
-```{r}
-```
 
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
 
 
 
