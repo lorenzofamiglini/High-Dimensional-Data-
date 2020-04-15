@@ -1,0 +1,266 @@
+---
+title: "Data exploration and regression assumptions analysis"
+output: html_notebook
+---
+```{r}
+library(ggplot2)
+library(dplyr)
+library(car)
+library(e1071)
+library(gtools)
+library(lsmeans)
+library(MASS)
+library(het.test)
+library(pander)
+library(ggplot2)
+library(lmtest)
+```
+
+
+```{r}
+df <- read.csv("all_vars_df.csv")
+df
+```
+------------------------------------------------------------------------------------------
+Analisi e correzione della variabile y rispetto alla distribuzione normale (se necessaria)
+------------------------------------------------------------------------------------------
+
+```{r}
+#Alcune statistiche:
+summary(df$bmi)
+#calcoliamoci l'asimmetria
+s <- as.data.frame(df$bmi)
+paste("L'indice di asimmetria e' pari a: ", apply(s, 2, skewness))
+#Deviazione standard
+paste("La deviazione standard e': ",sd(df$bmi))
+#Differenza Interquantilica: 
+paste("La differenza interquantilica e': ", IQR(df$bmi)) #distribuzione asimmetrica  e molti outliers
+
+
+#Coefficiente di variazione:
+paste("Il coefficiente di variazione e': ", (sd(df$bmi)/mean(df$bmi))*100)
+```
+
+```{r}
+yplot <- function(x, nbreaks=10) {
+               z <- x
+hist(z, breaks=nbreaks, freq=FALSE,
+     xlab="Price_charges",
+     main="Distribuzione della variabile dipendente", col = "grey")
+rug(jitter(z), col="brown")
+curve(dnorm(x, mean=mean(z), sd=sd(z)),
+      add=TRUE, col="red", lwd=2)
+lines(density(z)$x, density(z)$y,
+      col="black", lwd=2, lty = 2)
+legend("topright",
+       legend = c( "Normal Curve", "Kernel Density Curve"),
+       lty=1:2, col=c("red","black"), cex=.7)
+}
+#Densità + Forma
+yplot(df$bmi)
+yplot(log(df$bmi))
+
+#Analisi per sesso: 
+ggplot(df, aes(x = bmi, fill = as.factor(sex1m2f))) + 
+ geom_density(size = 0.6, alpha = .3, colour = "black") + 
+ geom_rug(aes(x = bmi,y = 0), position = position_jitter(height = 0)) +
+ labs(x = "Bmi", y =
+"Densita'", fill = "Sesso") +
+ ggtitle("Come si distribuisce bmi rispetto al sesso") 
+
+```
+
+```{r}
+qqnorm(df$bmi, pch = 1, frame = FALSE, col = "tomato")
+qqline(df$bmi, col = "steelblue", lwd = 2)
+qqnorm(log(df$bmi), pch = 1, frame = FALSE, col = "tomato") #sembrerebbe che il log permetta di schiacciare la coda 
+qqline(log(df$bmi), col = "steelblue", lwd = 2)
+```
+
+Presenta una forma leptocurtica con un asimmetria positiva
+
+Test non parametrici: 
+
+```{r}
+shapiro.test(df$bmi) #H0: normalità, si rigetta l'ipotesi nulla 
+shapiro.test(log(df$bmi)) #Il valore W si avvicina di più a 1 
+```
+
+```{r}
+plot(df$bmi)
+abline(h=36, col="blue")
+abline(h=10, col = "blue")
+text(df$bmi, labels=df$id, cex= 0.7)
+```
+
+```{r}
+no_out <- df
+id_out <- c(4018,4009,3056,3046,3022,3018)
+no_out <- no_out[!(no_out$id %in% id_out),]
+```
+
+```{r}
+qqnorm(no_out$bmi, pch = 1, frame = FALSE, col = "tomato")
+qqline(no_out$bmi, col = "steelblue", lwd = 2)
+qqnorm(log(no_out$bmi), pch = 1, frame = FALSE, col = "tomato") 
+qqline(log(no_out$bmi), col = "steelblue", lwd = 2)
+```
+
+```{r}
+shapiro.test(no_out$bmi) #H0: normalità, si accetta l'ipotesi di normalità dopo aver eliminato 7 outliers ()
+shapiro.test(log(no_out$bmi)) #In questo caso il log peggiora 
+```
+
+
+--------------------------------------------
+Continuo analisi esplorativa delle variabili
+--------------------------------------------
+
+#Testiamo se esiste una differenza significativa nelle due popolazioni maschili e femminili:
+```{r}
+wilcox.test(df$bmi~df$sex1m2f,  conf.int = T, paired = F) #non esiste una differenza significativa tra le distribuzioni delle due popolazioni legate al sesso. Si accetta l'ipotesi nulla ad un livello di confidenza del 95%. 
+```
+
+```{r}
+#Analisi per età:
+df$age <- as.integer(df$age)
+df$age_discr <- quantcut(df$age,3) #quantile discretization in 3 bins
+ggplot(df, aes(x = bmi, fill = age_discr)) + 
+ geom_density(size = 0.6, alpha = .3, colour = "black") + 
+ geom_rug(aes(x = bmi,y = 0), position = position_jitter(height = 0)) +
+ labs(x = "Bmi", y =
+"Densita'", fill = "Eta' discretizzata") +
+ ggtitle("Come si distribuisce il bmi rispetto all'eta'") 
+```
+Chi-squared test tra fasce di età e bmi:
+```{r}
+df$bmi_discr <- quantcut(df$bmi,3)
+age_bmi <- table(df$bmi_discr, df$age_discr)
+chisq.test(age_bmi)
+#Dal test del chi-quadro emerge che esiste una dipendenza tra le varie fasce di età e il bmi
+```
+
+```{r}
+options(scipen=999)
+df$bdate <- NULL
+df$zbmius <- NULL
+df$zbmicatus <- NULL
+df$bmicat1norm2ow3ob <- NULL
+#Analisi pca nutrienti, var. demografiche, bmi
+var_num <- c("bmi", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut","age","sex1m2f")
+cor(df[,var_num])
+plot(df[,var_num],cex=.8, col = "tomato")
+
+
+var_num <- c("bmi", "PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa","age","sex1m2f", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut", "weightkg","heightcm")
+library(corrplot)
+coor <- cor(df[,var_num])
+corrplot(coor, method="color", addCoef.col="black", order = "AOE")
+```
+
+------------
+Modellazione
+------------
+
+```{r}
+mod_lin <- lm(bmi ~  PC1_taxa + PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa + age + sex1m2f, df) 
+summary(mod_lin)
+anova(mod_lin)
+```
+
+# Test per omoschedasticità:
+```{r}
+white.test <- function(lmod,data=no_out){
+  u2 <- lmod$residuals^2
+  y <- fitted(lmod)
+  Ru2 <- summary(lm(u2 ~ y + I(y^2)))$r.squared
+  LM <- nrow(data)*Ru2
+  p.value <- 1-pchisq(LM, 2)
+  data.frame("Test statistic"=LM,"P value"=p.value)
+}
+white.test(mod_lin)
+```
+#Si accetta l'assunzione di omoschedasticità
+
+
+-------------------------
+VERIFICO AUTOCORRELAZIONE
+-------------------------
+1)Distribuzione dei residui
+```{r}
+plot(1:nrow(no_out),resid(mod_lin),xlab="Observation Index",ylab="Residui",pch=19) #Graficamente non si vede bene la correlazine dei residui. E' piu utile in questo caso il test di dwatson
+abline(h=0,col=2,lwd=3,lty=2)
+```
+
+Test di darbin-watson
+```{r}
+library(pander)
+pander(dwtest(mod_lin),big.mark=",") #essendo la statistica d compresa tra 1 e 3 possiamo affermare che non c'? autocorrelazione seriale di primo ordine tra i residui (ricorda che per d<1 c'? autocorrelazione positiva mentre per d>3 c'? autocorrelazione negativa) In ogni caso non mi aspetto un'autocorrelazione dei residui in quanto non ? una serie temporale (e anche se ci fosse autocorrelazione potrei decidere di non correggerla proprio perch? non ? una serie temporale)
+```
+
+---------------------
+Normalità dei residui
+---------------------
+
+Test della Kurtosis 
+```{r}
+library(normtest)
+kurtosis.norm.test(mod_lin$residuals, nrepl=2000)  #H0 normalit??, p-value < livello alpha: non norm.
+#In questo caso si rifiuta l'ipotesi di normalit?? 
+```
+ Test di shapiro wilk
+```{r}
+shapiro.test(mod_lin$residuals) #Ipotesi di normalit? rifiutata
+```
+
+```{r}
+stdres <- rstandard(mod_lin) #residui standardizzati
+probDist <- pnorm(stdres) #probabilit?? dei residui standardizzati
+plot(ppoints(length(stdres)), sort(probDist), main = "PP-Plot", xlab = "Observed Probability", ylab = "Expected Probability")
+abline(0,1)
+```
+
+Outliers sui residui
+```{r}
+library(olsrr)
+olsrr::ols_plot_cooksd_chart(mod_lin)
+```
+
+
+```{r}
+# Stepwise regression: 
+library(tidyverse)
+library(caret)
+library(leaps)
+library(MASS)
+df2 <-  no_out
+lista <- c("id","visitdate","heightcm","vdate","heightm","zbmius","zbmicatus","birthdate","bdate")
+df2[,lista] <- list(NULL)
+df2
+# Fit the full model 
+full.model <- lm(bmi ~ PC1_nut+PC2_nut + PC3_nut + PC4_nut + PC5_nut + age + sex1m2f +
+                   PC1_taxa+PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa, data = df2) 
+summary(full.model)
+# Stepwise regression model
+step.modelb <- stepAIC(full.model, direction = "backward", 
+                      trace = FALSE)
+step.modelf <- stepAIC(full.model, direction = "forward", 
+                      trace = FALSE)
+step.modelb
+step.modelf
+summary(step.modelb)
+summary(step.modelf)
+
+#Oppure: 
+# Train the model
+train.control <- trainControl(method = "cv", number = 10) #procedura di crossvalidation
+step.modelB <- train(bmi ~PC1_nut + PC2_nut + PC3_nut + PC4_nut + PC5_nut + age + sex1m2f +
+                   PC1_taxa + PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa, data = df2,
+                    method = "leapBackward", 
+                    tuneGrid = data.frame(nvmax = 1:13), #da 1 a 3 variabili
+                    trControl = train.control
+                    )
+step.modelB
+```
+
+
