@@ -263,17 +263,23 @@ selected_taxa_names = colnames(selected_taxa)
 
 ```{r}
 # Creating Heatmap with correlation between 101 selected nutrients and 76 selected taxa.
-microbiome_nutrients_data = merge(selected_taxa,final_nutrients,by=0)
+
+genera = extract_taxa(taxa_table_6) # only relevant genera 
+
+microbiome_nutrients_data = merge(genera,final_nutrients,by=0)
 rownames(microbiome_nutrients_data) = microbiome_nutrients_data[,1]
 microbiome_nutrients_data[,c("Row.names")] <- list(NULL)
+microbiome_nutrients_data[,c("id")] <- list(NULL)
 
-nutrients_microbiome_correlations = cor(microbiome_nutrients_data,method="spearman")[1:ncol(selected_taxa),(ncol(selected_taxa)+1):ncol(microbiome_nutrients_data)]
+nutrients_microbiome_correlations = cor(microbiome_nutrients_data,method="spearman")[1:ncol(genera),(ncol(genera)+1):ncol(microbiome_nutrients_data)]
 
 
 correlation_data <- melt(nutrients_microbiome_correlations)
 names(correlation_data) = c("Taxa","Nutrient","correlation")
+correlation_data$Taxa = as.character(correlation_data$Taxa)
+correlation_data$Taxa = unlist(lapply(correlation_data$Taxa, function(x) strsplit(x,"g__")[[1]][2]))
 
-ggplot(data = correlation_data, aes(x=Nutrient, y=Taxa, fill=correlation)) + 
+ggplot(data = correlation_data, aes(x=Taxa, y=Nutrient, fill=correlation)) + 
   geom_tile() +
   scale_fill_gradient2(low="darkblue", high="red", guide="colorbar")
 
@@ -464,6 +470,12 @@ genera_taxa_abundances = otu_table_genera
 genera_taxa_abundances$id <- gsub("1011.C.", "", rownames(genera_taxa_abundances))
 genera_taxa_abundances$id <- gsub(".01.P\\d|.01.S\\d", "", genera_taxa_abundances$id)
 
+# generate strings for cluster assignment
+cluster_assignment$id = rownames(cluster_assignment)
+cluster_assignment$id <- gsub("1011.C.", "", cluster_assignment$id)
+cluster_assignment$id <- gsub(".01.P\\d|.01.S\\d", "", cluster_assignment$id)
+cluster_assignment$cluster = ifelse(cluster_assignment$cluster==1,"Prevotella","Bacteroides")
+
 dataset_demo_nutrients_taxa = merge(bmi_nutrients, genera_taxa_abundances, by = "id", sort = F)
 
 
@@ -475,7 +487,23 @@ pca_nutrients = as.data.frame(prcomp(final_nutrients[,-ncol(final_nutrients)],sc
 colnames(pca_nutrients) = c("PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut")
 
 
-100*(pcoa$eig/sum(pcoa$eig)) # % of variance explained from each bacteria taxa pc
+100*(pcoa$eig/sum(pcoa$eig)) # % of variance explained from each bacteria taxa (119) pc
+pca_bacteria_taxa = pcoa$li[,1:6]
+colnames(pca_bacteria_taxa) = c("PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa")
+rownames(pca_bacteria_taxa) = rownames(otu_table_genera)
+
+
+genera$id <- gsub("1011.C.", "", rownames(genera))
+genera$id <- gsub(".01.P\\d|.01.S\\d", "", genera$id)
+genera_without_ids = genera[,-ncol(genera)]
+pca_genera = as.data.frame(prcomp(genera_without_ids)$x[,1:2])
+colnames(pca_genera) = c("PC1_taxa","PC2_taxa")
+
+
+
+
+
+100*(pcoa$eig/sum(pcoa$eig)) # % of variance explained from each bacteria taxa (119) pc
 pca_bacteria_taxa = pcoa$li[,1:6]
 colnames(pca_bacteria_taxa) = c("PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa")
 rownames(pca_bacteria_taxa) = rownames(otu_table_genera)
@@ -485,16 +513,28 @@ colnames(principal_components_df)[1] = "id"
 principal_components_df$id <- gsub("1011.C.", "", principal_components_df$id)
 principal_components_df$id <- gsub(".01.P\\d|.01.S\\d", "", principal_components_df$id)
 
+dataset_demo_nutrients_genera = merge(bmi_nutrients, genera, by = "id", sort = F)
+principal_components_df_gen = merge(pca_nutrients, pca_genera, by = 0)
+colnames(principal_components_df_gen)[1] = "id"
+principal_components_df_gen$id <- gsub("1011.C.", "", principal_components_df_gen$id)
+principal_components_df_gen$id <- gsub(".01.P\\d|.01.S\\d", "", principal_components_df_gen$id)
 
+all_vars_dataset = merge(merge(dataset_demo_nutrients_taxa, principal_components_df, by = "id"),cluster_assignment, by ="id")
 
-all_vars_dataset = merge(dataset_demo_nutrients_taxa, principal_components_df, by = "id")
+all_genera_dataset = merge(merge(dataset_demo_nutrients_genera, principal_components_df_gen, by = "id"),cluster_assignment,by="id")
 
-write.csv(all_vars_dataset, "all_vars_df.csv", row.names = F, quote = F)
+#write.csv(all_vars_dataset, "all_vars_df.csv", row.names = F, quote = F)
 
 ```
 
 
 # PROVE e TEST VARI (non necessari ma potenzialmente utili)
+
+```{r}
+#all_varss = read.csv("all_vars_df.csv", sep = ",")
+#genera_all_vars =  read.csv("datasets/genera_all_vars_df.csv", sep = ",")
+```
+
 
 ```{r}
 #Correlazione di Spearman 
