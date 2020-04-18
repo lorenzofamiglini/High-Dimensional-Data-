@@ -19,8 +19,11 @@ library(lmtest)
 
 ```{r}
 df <- read.csv("all_vars_df.csv")
-df
 ```
+
+
+
+
 ------------------------------------------------------------------------------------------
 Analisi e correzione della variabile y rispetto alla distribuzione normale (se necessaria)
 ------------------------------------------------------------------------------------------
@@ -96,6 +99,7 @@ text(df$bmi, labels=df$id, cex= 0.7)
 ```{r}
 no_out <- df
 id_out <- c(4018,4009,3056,3046,3022,3018)
+#no_out <- df[-c(15,52,83,88,48),]
 no_out <- no_out[!(no_out$id %in% id_out),]
 ```
 
@@ -110,7 +114,6 @@ qqline(log(no_out$bmi), col = "steelblue", lwd = 2)
 shapiro.test(no_out$bmi) #H0: normalità, si accetta l'ipotesi di normalità dopo aver eliminato 7 outliers ()
 shapiro.test(log(no_out$bmi)) #In questo caso il log peggiora 
 ```
-
 
 --------------------------------------------
 Continuo analisi esplorativa delle variabili
@@ -149,12 +152,13 @@ df$bmicat1norm2ow3ob <- NULL
 #Analisi pca nutrienti, var. demografiche, bmi
 var_num <- c("bmi", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut","age","sex1m2f")
 cor(df[,var_num])
-plot(df[,var_num],cex=.8, col = "tomato")
+plot(no_out[,var_num],cex=.8, col = "tomato")
 
 
 var_num <- c("bmi", "PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa","age","sex1m2f", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut", "weightkg","heightcm")
 library(corrplot)
-coor <- cor(df[,var_num])
+
+coor <- cor(no_out[,var_num])
 corrplot(coor, method="color", addCoef.col="black", order = "AOE")
 ```
 
@@ -163,7 +167,7 @@ Modellazione
 ------------
 
 ```{r}
-mod_lin <- lm(bmi ~  PC1_taxa + PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa + age + sex1m2f, df) 
+mod_lin <- lm(bmi ~  PC1_taxa + PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa + age + sex1m2f, no_out) 
 summary(mod_lin)
 anova(mod_lin)
 ```
@@ -226,20 +230,46 @@ library(olsrr)
 olsrr::ols_plot_cooksd_chart(mod_lin)
 ```
 
-
 ```{r}
 # Stepwise regression: 
 library(tidyverse)
 library(caret)
 library(leaps)
 library(MASS)
-df2 <-  no_out
-lista <- c("id","visitdate","heightcm","vdate","heightm","zbmius","zbmicatus","birthdate","bdate")
-df2[,lista] <- list(NULL)
-df2
+
+new_df <- read.csv("datasets/genera_all_vars_df.csv")
+id_out <- c(4018,4009,3056,3046,3022,3018)
+new_df$age <- as.integer(new_df$age)
+#new_df <- new_df
+
+new_df <- new_df[!(new_df$id %in% id_out),]
+lista <- c("id","visitdate","heightcm","vdate","heightm","zbmius","zbmicatus","birthdate","bdate","bmicat1norm2ow3ob","weightkg",
+           "PC1_taxa","PC2_taxa")
+
+new_df[,lista] <- list(NULL)
+new_df <- new_df[,-c(4:108)]
+
+
+#Train e test split:
+# Random sample indexes
+set.seed(20)
+train_index <- sample(1:nrow(new_df), 0.9 * nrow(new_df))
+test_index <- setdiff(1:nrow(new_df), train_index)
+
+# Build X_train, y_train, X_test, y_test
+X_train <- new_df[train_index, -3]
+y_train <- new_df[train_index, "bmi"]
+
+X_test <- new_df[test_index, -3]
+y_test <- new_df[test_index, "bmi"]
+
+train_data <- cbind(y_train,X_train)
 # Fit the full model 
-full.model <- lm(bmi ~ PC1_nut+PC2_nut + PC3_nut + PC4_nut + PC5_nut + age + sex1m2f +
-                   PC1_taxa+PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa, data = df2) 
+full.model <- lm(y_train  ~. , data = X_train)
+
+#full.model <- lm(bmi ~ PC1_nut+PC2_nut + PC3_nut + PC4_nut + PC5_nut + age + sex1m2f +
+ #                  PC1_taxa+PC2_taxa, data = new_df) 
+
 summary(full.model)
 # Stepwise regression model
 step.modelb <- stepAIC(full.model, direction = "backward", 
@@ -253,14 +283,109 @@ summary(step.modelf)
 
 #Oppure: 
 # Train the model
-train.control <- trainControl(method = "cv", number = 10) #procedura di crossvalidation
-step.modelB <- train(bmi ~PC1_nut + PC2_nut + PC3_nut + PC4_nut + PC5_nut + age + sex1m2f +
-                   PC1_taxa + PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa, data = df2,
-                    method = "leapBackward", 
-                    tuneGrid = data.frame(nvmax = 1:13), #da 1 a 3 variabili
+train.control <- trainControl(method = "cv", repeats = 1, number = 9,savePred=T) #procedura di crossvalidation, number = 9, repeats = 1
+step.modelB <- train(y_train ~., data = train_data,
+                    method = "leapForward", 
+                    tuneGrid = data.frame(nvmax = 1:44), #da 1 a 3 variabili
                     trControl = train.control
                     )
+trellis.par.set(caretTheme())
+ggplot(step.modelB, metric = "MAE")  
+ggplot(step.modelB, metric = "Rsquared")
+ggplot(step.modelB, metric = "RMSE") 
+step.modelB$finalModel
+step.modelB$results
+
+coef(step.modelB$finalModel, as.double(step.modelB$bestTune))
+step.modelB$bestTune
+summary(step.modelB$finalModel)
+step.modelB$results
+
+#Di nuovo stepwise regression nel subset scelto: 
+train.control <- trainControl(method = "cv", repeats = 1, number = 9,savePred=T) #procedura di crossvalidation, number = 9, repeats = 1
+step.modelB <- train(y_train ~., data = train_data,
+                    method = "leapForward", 
+                    tuneGrid = data.frame(nvmax = 1:44), #da 1 a 3 variabili
+                    trControl = train.control
+                    )
+
+#CV con i regressori scelti: 
+train.control <- trainControl(method = "cv", repeats = 1, number = 9,savePred=T) #procedura di crossvalidation, number = 9, repeats = 1
+step.modelB <- train(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Porphyromonadaceae.g__Parabacteroides + 
+    k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Prevotellaceae.g__Prevotella + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Clostridiaceae.g__SMB53 + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Blautia + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Clostridium + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Phascolarctobacterium, 
+    data = train_data, method = "leapBackward", 
+                    tuneGrid = data.frame(nvmax = 1:10), #da 1 a 3 variabili
+                    trControl = train.control,
+                    )
+
+
+predict(step.modelB$finalModel, interval = "confidence")
 step.modelB
+#Un altro approccio di stepwise regression:
+library(leaps)
+leaps <-regsubsets(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Porphyromonadaceae.g__Parabacteroides +
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Clostridiaceae.g__SMB53 + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Blautia + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
+    #k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Phascolarctobacterium + 
+    PC5_nut, X_train,method = "forward") #guarda solo R^2 ma non la significatività dei parametri.
+plot(leaps, scale="adjr2") 
+
+
+train.control <- trainControl(method = "cv", repeats = 1, number = 10,savePred=T)
+model <- train(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Porphyromonadaceae.g__Parabacteroides +
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Clostridiaceae.g__SMB53 + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Blautia + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
+    PC5_nut, train_data, method = "lm", trControl = train.control)
+
+model$resample
+final_model <-lm(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Porphyromonadaceae.g__Parabacteroides +
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Clostridiaceae.g__SMB53 + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Blautia + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
+    PC5_nut, X_train) #mape 0.07
+
+final_model2 <- lm(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Porphyromonadaceae.g__Parabacteroides + 
+    k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Prevotellaceae.g__Prevotella + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Clostridiaceae.g__SMB53 + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Blautia + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Clostridium + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
+    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Phascolarctobacterium, 
+    data = train_data) #mape 0.08
+
+summary(final_model2)
+summary(final_model)
+shapiro.test(final_model$residuals) 
+white.test(final_model)
+
+qqnorm(final_model$residuals, pch = 1, frame = FALSE, col = "tomato")
+qqline(final_model$residuals, col = "steelblue", lwd = 2)
+
+ols_vif_tol(final_model) #VIF minore di 10 non sussiste collinearità delle variabili
+
+#Predizioni:
+predictions <- predict(final_model, X_test)
+Metrics::mae(y_test,predictions$predictions)
+
+predictions <- as.data.frame(predictions)
+predictions$true_y <- y_test
+predictions
+ggiraphExtra::ggPredict(final_model)
+
+#Plot hyperplane
+rockchalk::plotPlane(final_model, plotx1 = "sex1m2f", plotx2 = "age",ticktype = "detailed",npp = 10, theta = 30)
 ```
 
 
