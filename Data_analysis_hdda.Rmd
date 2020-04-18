@@ -184,6 +184,17 @@ X_test <- no_out[test_index, -11]
 y_test <- no_out[test_index, "bmi"]
 ```
 
+```{r}
+get_r2 <- function(test.y, test.pred){
+  SS.total      <- sum((test.y - mean(test.y))^2)
+  SS.residual   <- sum((test.y - test.pred)^2)
+  SS.regression <- sum((test.pred - mean(test.y))^2)
+  SS.total <- (SS.regression+SS.residual)
+  r2 <- SS.regression/SS.total 
+  return(r2)
+}
+```
+
 Modello 1: PCA taxa + variabili demografiche + clustering 
 ```{r}
 mod_lin1 <- lm(y_train ~  PC1_taxa + PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa + age + sex1m2f + cluster, X_train) 
@@ -194,7 +205,7 @@ anova(mod_lin1)
 train_data <- cbind(y_train, X_train)
 
 train.control <- trainControl(method = "cv", number = 10,savePred=T)
-model1 <- train(y_train ~ PC1_taxa + PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa + age + sex1m2f + cluster, train_data, 
+model1 <- train(y_train ~ PC1_taxa + PC2_taxa + PC3_taxa + PC4_taxa + PC5_taxa + PC6_taxa + age + sex1m2f, train_data, 
                method = "lm", trControl = train.control) 
 
 get_confid_i <- function(model1, model_type = "Mod1"){
@@ -227,12 +238,12 @@ anova(mod_lin2)
 train_data <- cbind(y_train, X_train)
 
 train.control <- trainControl(method = "cv", number = 10,savePred=T)
-model2 <- train(y_train ~ PC1_nut + PC2_nut + PC3_nut + PC4_nut + PC5_nut + age + sex1m2f + cluster, train_data, 
+model2 <- train(y_train ~ PC1_nut + PC2_nut + PC3_nut + PC4_nut + PC5_nut + age + sex1m2f, train_data, 
                method = "lm", trControl = train.control)
 
 model2$resample
-Metrics::mape(predict(model2,X_test), y_test)
-
+Metrics::rmse(predict(model2,X_test), y_test)
+get_r2(predict(model2,X_test), y_test)
 info_mod2 <- get_confid_i(model2, model_type = "Mod2")
 ```
 
@@ -312,6 +323,7 @@ lista <- c("id","visitdate","heightcm","vdate","heightm","zbmius","zbmicatus","b
            "PC1_taxa","PC2_taxa")
 
 new_df[,lista] <- list(NULL)
+new_df2 <- new_df
 new_df <- new_df[,-c(4:108)]
 
 
@@ -434,19 +446,6 @@ info_mod3 <- get_confid_i(model, model_type = "Mod3")
 final_info <- rbind(info_mod1,info_mod2, info_mod3)
 
 final_info$Rsquaredadj <- c(0.3551, 0.3446,0.5113)
-ggplot(final_info)  +
-  geom_errorbar(aes(x = type,y = media, ymin = lower_bound, ymax = upper_bound,color = "#000099"), alpha = 0.5, width=.3,position=position_dodge(0.1)) + 
-    geom_point(aes(x = type,y = media,,color = "#000099"), alpha = 0.5) +
-  geom_line(aes(x = type, y = Rsquaredadj*10, color = "black"),group = 1) +
-  geom_point(aes(x = type, y = Rsquaredadj*10, color = "black"),group = 1) +
-  scale_y_continuous(sec.axis = sec_axis(trans = ~./10,name = "R-squared adj"))+
-  scale_color_manual(values=c("blue", "black"), labels = c("CI RMSE", "R-squared adj")) +
-labs(title="Intervallo di confidenza CV rispetto al RMSE",
-      subtitle="Mettiamo a confronto gli errori ottenuti in cv dai diversi modelli e R-squared adj in holdout",
-      y = "RMSE (mean cv)",
-      x = "Tipologia di modello",
-     color = "Metriche")
-
 ```
 
 
@@ -455,10 +454,9 @@ labs(title="Intervallo di confidenza CV rispetto al RMSE",
 Modello Finale
 --------------
 ```{r}
-final_model <-lm(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Odoribacteraceae.g__Butyricimonas +
-    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Clostridiaceae.g__SMB53 + 
-    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Blautia + 
+final_model <-lm(y_train ~  sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Odoribacteraceae.g__Butyricimonas +
     k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
+      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Ruminococcaceae.g__Oscillospira + 
     k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
     PC5_nut,data = train_data) #mape 0.07
 
@@ -473,12 +471,205 @@ qqline(final_model$residuals, col = "steelblue", lwd = 2)
 ols_vif_tol(final_model) #VIF minore di 10 non sussiste collinearità delle variabili
 
 #Predizioni:
-predictions <- predict(mod_lin2, no_out)
+predictions <- predict(final_model, X_test)
 
-Metrics::rmse(y_test,predictions)
-
+Metrics::rmse(y_test,predictions) #3.44
+get_r2(y_test, predictions)
 
 #Plot hyperplane
 rockchalk::plotPlane(final_model, plotx1 = "sex1m2f", plotx2 = "age",ticktype = "detailed",npp = 10, theta = 30)
+```
+
+------
+LASSO
+------
+```{r}
+
+train.control <- trainControl(method = "cv", 
+                              number = 10, savePredictions = "final", returnResamp = 'all')
+print_lasso <- function(dataset) {
+  # split in train and test: 90% obs in train and 10% in test
+  training_set = dataset[train_index,]
+  test_set = dataset[-train_index,]
+  #lambdas = tsutils::lambdaseq(training_set[,-1], training_set[,1], weight = NA, alpha = 1, standardise = TRUE,
+   #                         lambdaRatio = 1e-04, nLambda = 100, addZeroLambda = FALSE)$lambda 
+  lambdas = seq(0.1,3, 0.05)
+  # Train the model
+  model_lasso <- train(bmi ~., data = training_set, method = "glmnet", preProcess="scale",
+                       trControl = train.control, tuneGrid=expand.grid(alpha=1, lambda=lambdas))
+  #print(model_lasso)
+  #print(coef(model_lasso$finalModel,model_lasso$finalModel$lambdaOpt))
+  mape = 100*mean(abs((test_set[,1] - as.numeric(predict(model_lasso, test_set)))/test_set[,1]))
+  mse = mean((test_set[,1] - as.numeric(predict(model_lasso, test_set)))**2)
+  
+  resempla_cv <- model_lasso$resempla_cv <- model_lasso$resample
+  mean_agg <- aggregate(resempla_cv$RMSE, list(resempla_cv$lambda), mean)
+  std_cv <- aggregate(resempla_cv$RMSE, list(resempla_cv$lambda), sd)
+  
+  std_cv <- create_df(std_cv, met = "std")
+  mean_cv <- create_df(mean_agg, met = "mean")
+  mn_sd_cv <- cbind(mean_cv, std_cv)
+  mn_sd_cv <- mn_sd_cv[,-3]
+  
+  mn_sd_cv$std_error <- 1/(sqrt(10))*mn_sd_cv$std
+  mn_sd_cv$lower_bound <- mn_sd_cv$mean - 1.96 *mn_sd_cv$std_error
+  mn_sd_cv$upper_bound <- mn_sd_cv$mean + 1.96 *mn_sd_cv$std_error
+  
+  res_r2 <- model_lasso$results$Rsquared
+  
+  mn_sd_cv$rsquared <- res_r2
+  
+  ci_stepwise_plot <- ggplot(mn_sd_cv) + 
+    geom_point(data = mn_sd_cv, aes(x =`Regressor_#`,y = mean,color = "#000099"), alpha = 0.5) + 
+    geom_errorbar(data = mn_sd_cv,aes(x = `Regressor_#`,y = mean, ymin = lower_bound, ymax = upper_bound,color = "#000099"), alpha = 0.5, width=.3,position=position_dodge(0.1))+
+    geom_line(aes(x = `Regressor_#`,y = rsquared*10,color = "green")) + 
+    geom_point(aes(x = `Regressor_#`,y = rsquared*10,color = "green")) + 
+    scale_y_continuous(sec.axis = sec_axis(trans = ~./10,name = "R-squared")) + 
+    labs(title="Lasso regression (CV 10 folds), selezione lambda migliore ",
+         subtitle="Intervallo di confidenza CV rispetto al RMSE, R-squared (valor medio)",
+         y = "RMSE (mean cv)",
+         x = "Lambda",
+         color = "Metrica")+
+    scale_color_manual(values=c("blue", "black"), labels = c("CI 95% RMSE", "R-squared"))
+  
+  
+  
+  
+  #lambdas_rmse = demo_nutrients_cluster_model$resample$RMSE
+  #mean_lambdas_rmse = mean(model_lasso$results$RMSE)
+  #sd_lambdas_rmse = sd(model_lasso$results$RMSE)
+  #list = list()
+  #list[["mape"]] = mape
+  #list[["mse"]] = mse
+  #list[["rmse"]] = mse**(1/2)
+  #list[["rmse_lower"]] = mn_sd_cv$lower_bound
+  #list[["rmse_upper"]] = mn_sd_cv$upper_bound
+  #print(list)
+  return(list(ci_stepwise_plot, model_lasso,training_set))
+}
+
+create_df <- function(x, met = "std"){
+  colnames(x)[1] <- "Regressor_#"
+  colnames(x)[2] <- met
+  return(x)
+}
+
+
+dataset <- read.csv("datasets/demo_nutrients_cluster.csv")
+dataset$X <- NULL
+
+lasso_plt <- print_lasso(dataset)
+lasso_plt[[2]]$bestTune
+#ggsave("lasso_demo_nutriens_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
+
+get_lasso <- function(lasso_plt, lamb = 0.6, typ = "lasso3"){
+              train.control <- trainControl(method = "cv", repeats = 1, number = 10,savePred=T, 
+                              returnResamp = "all") #procedura di crossvalidation, number = 9, repeats = 1
+              model<- train(bmi ~.,data = lasso_plt[[3]], method = "glmnet", tuneGrid=expand.grid(alpha=1, lambda=lamb),
+                    trControl = train.control)
+              info_mod <- get_confid_i(model, model_type = typ)
+              return(list(info_mod, model))
+}
+lass1 <- get_lasso(lasso_plt, lamb = 0.6, typ = "lasso1")
+info_mod4 <- lass1[[1]]
+info_mod4$Rsquaredadj <-lass1[[2]]$results$Rsquared
+final_info <- rbind(final_info, info_mod4)
+
+
+lasso_plt <- print_lasso(new_df)
+#ggsave("lasso_demo_37taxa_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
+
+lass2 <- get_lasso(lasso_plt,lamb = 0.8, typ = "lasso2")
+info_mod5 <- lass2[[1]]
+info_mod5$Rsquaredadj <-lass2[[2]]$results$Rsquared
+
+final_info <- rbind(final_info, info_mod5)
+
+new_df2 <- new_df2[,-c(147:151)]
+lasso_plt <- print_lasso(new_df2)
+#ggsave("lasso_demo_37taxa_nutriens_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
+lasso_plt[[2]]$bestTune
+lass3 <- get_lasso(lasso_plt,lamb = 0.85, typ = "lasso3")
+info_mod6 <- lass3[[1]]
+info_mod6$Rsquaredadj <-lass3[[2]]$results$Rsquared
+
+final_info <- rbind(final_info, info_mod6)
+```
+
+
+```{r}
+final_info$type[final_info$type == "Mod1"] = "Mod.lineare 1"
+final_info$type[final_info$type == "Mod2"] = "Mod.lineare 2"
+final_info$type[final_info$type == "Mod3"] = "Mod.stepwise"
+final_info$type[final_info$type == "lasso1"] = "Lasso 1"
+final_info$type[final_info$type == "lasso2"] = "Lasso 2"
+final_info$type[final_info$type == "lasso3"] = "Lasso 3"
+
+mod_las_lin_plot <- ggplot(final_info)  +
+  geom_errorbar(aes(x = type,y = media, ymin = lower_bound, ymax = upper_bound,color = "#000099"), alpha = 0.5, width=.3,position=position_dodge(0.1)) + 
+    geom_point(aes(x = type,y = media,,color = "#000099"), alpha = 0.5) +
+  geom_line(aes(x = type, y = Rsquaredadj*10, color = "black"),group = 1) +
+  geom_point(aes(x = type, y = Rsquaredadj*10, color = "black"),group = 1) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~./10,name = "R-squared adj"))+
+  scale_color_manual(values=c("blue", "black"), labels = c("CI 95% RMSE", "R-squared adj")) +
+labs(title="Intervallo di confidenza CV rispetto al RMSE",
+      subtitle="Mettiamo a confronto gli errori ottenuti in cv dai diversi modelli e R-squared adj",
+      y = "RMSE (mean cv)",
+      x = "Tipologia di modello",
+     color = "Metriche")  
+#ggsave("confronto_tutti_i_modelli.png", mod_las_lin_plot, height=8.5, width=15.57)  
+```
+
+
+```{r}
+training_set = dataset[train_index,]
+test_set = dataset[-train_index,]
+mod_lasso_1 <- glmnet::glmnet(as.matrix(training_set[,-1]), as.matrix(training_set[,1]), alpha = 1, lambda = 0.6)
+
+pred_lasso1 <- predict(mod_lasso_1, s = 0.6, newx = as.matrix(test_set[,-1]))
+Metrics::msre(test_set[,1],pred_lasso1) #3.645
+get_r2(test_set[,1],pred_lasso1)
+
+new_df$cluster <- as.character(new_df$cluster)
+new_df$cluster[new_df$cluster == "Bacteroides"] = 1
+new_df$cluster[new_df$cluster == "Prevotella"] = 2
+new_df$cluster <- as.numeric(new_df$cluster)
+mod_lasso_2 <- glmnet::glmnet(as.matrix(new_df[train_index,-3]), as.matrix(new_df[train_index,3]), alpha = 1, lambda = 0.8)
+
+pred_lasso2 <- predict(mod_lasso_2, s = 0.8, newx = as.matrix(new_df[test_index,-3]))
+Metrics::rmse(new_df[test_index,3],pred_lasso2) #3.015
+get_r2(new_df[test_index,3],pred_lasso2)
+
+mod_lasso_3 <- glmnet::glmnet(as.matrix(new_df2[train_index,-3]), as.matrix(new_df2[train_index,3]), alpha = 1, lambda = 0.85)
+
+pred_lasso3 <- predict(mod_lasso_3, s = 0.85, newx = as.matrix(new_df2[test_index,-3]))
+Metrics::rmse(new_df2[test_index,3],pred_lasso3) #3.006
+
+get_r2(new_df2[test_index,3],pred_lasso3)
+
+```
+
+RISULTATI TEST (RMSE):
+LASSO 1: 3.645
+LASSO 2: 3.015
+LASSO 3: 3.006
+Modello lineare 1: 3.332
+Modello lineare 2: 3.221
+Stepwise regression: 3.441
+
+RISULTATI TEST (R-squared):
+LASSO 1: 0.296
+LASSO 2: 0.333
+LASSO 3: 0.334
+Modello lineare 1: 0.339
+Modello lineare 2: 0.346
+Stepwise regression: 0.382
+
+```{r}
+
+```
+
+
+```{r}
 ```
 
