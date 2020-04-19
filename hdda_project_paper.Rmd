@@ -601,8 +601,6 @@ colnames(pca_genera) = c("PC1_taxa","PC2_taxa")
 
 
 
-
-
 100*(pcoa$eig/sum(pcoa$eig)) # % of variance explained from each bacteria taxa (119) pc
 pca_bacteria_taxa = pcoa$li[,1:6]
 colnames(pca_bacteria_taxa) = c("PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa")
@@ -627,22 +625,4 @@ all_genera_dataset = merge(merge(dataset_demo_nutrients_genera, principal_compon
 #write.csv(all_genera_dataset, "all_genera_vars_df.csv", row.names = F, quote = F)
 ```
 
-
-# PROVE e TEST VARI (non necessari ma potenzialmente utili)
-
-```{r}
-#all_varss = read.csv("all_vars_df.csv", sep = ",")
-#genera_all_vars =  read.csv("datasets/genera_all_vars_df.csv", sep = ",")
-```
-
-
-```{r}
-#Correlazione di Spearman 
-corr <- cor.test(x=cars$speed, y=cars$dist, method = 'spearman')
-
-
-col <- colorRampPalette(c("darkblue", "white", "darkorange"))(20)
-M <- cor(mtcars[1:7])
-heatmap(x = M, col = col, symm = TRUE)
-```
 
