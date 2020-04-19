@@ -68,15 +68,11 @@ phy_tax = merge_phyloseq(physeq, random_tree)
 
 # Creation of phylogenertic tree starting from only 6th taxonomy level (genera).
 
-physeq_genera_all <- aggregate_taxa(physeq, level = "taxonomy6")
-#physeq_genera <- subset_taxa(physeq_genera_all, taxonomy6!="g__")
 physeq_genera <- microbiome::aggregate_taxa(physeq, level = "taxonomy6")
 
 prova_ab = as.data.frame(t(100*abundances(otu_table(physeq_genera))))
-#Rispetto alla nostra aggregazione con final 
-#OTU <- otu_table(taxa_nutrients_ab, taxa_are_rows = TRUE)
-#TAX <- tax_table(as.matrix(taxonomy))
-#physeq <- phyloseq(OTU, TAX)
+
+# Abundance plot
 plot_bar(physeq,fill="taxonomy6") +
   ggtitle("Abbondanza relativa a livello di genere") +
      theme(axis.title.x=element_blank(),
@@ -89,7 +85,7 @@ plot_bar(physeq,fill="taxonomy6") +
 
 
 random_tree_genera = rtree(nrow(tax_table(physeq_genera)), rooted=TRUE, tip.label=taxa_names(physeq_genera))
-plot(random_tree,show.tip.label = F)
+#plot(random_tree,show.tip.label = F)
 phy_tax_genera = merge_phyloseq(physeq_genera, random_tree_genera)
 ```
 
@@ -159,12 +155,6 @@ taxa_table_6 <- as.data.frame(prepare_data(taxa6))
 taxa_table <- cbind(taxa_table_2, taxa_table_3, taxa_table_4, taxa_table_5, taxa_table_6)
 ```
 
-```{r}
-#final_tax6_ab <- as.data.frame(t(taxa_table_6))
-#final_tax6_ab <- as.data.frame(lapply(taxa_table_6,function(x) as.numeric(as.character(x))))
-#final_tax6_ab <- as.data.frame(apply(taxa_table_6,2, function(x){x/sum(x)}))
-#sum(final_tax6_ab[,1])
-```
 
 #### SELECT NUTRIENTS
 ```{r}
@@ -191,7 +181,7 @@ nutrients_samples$id = map_nutrients$X.SampleID
 
 nutrients_continuous <- nutrients_samples[match(patients_ids, nutrients_samples$id),]
 
-# transform all columns to grams
+# convert all nutrients unit measures from mgc and mg to g
 g_as_unit_measure = function(data){
   for (i in 1:ncol(data)){
     if (grepl("mg", colnames(data)[i], fixed = TRUE)){
@@ -271,7 +261,7 @@ final_nutrients = nutrients_continuous[,selected_fdr_indexes]
 ```{r}
 # Extraction of all possible bacteria taxa from taxa_table which respect 2 criteria:
 # - abundance >= 0.2%
-# - presnet in at least 10% of patients (= 10 patients).
+# - present in at least 10% of patients (= 10 patients).
 
 extract_taxa = function(final){
   final <- as.data.frame(t(final))
@@ -287,24 +277,15 @@ extract_taxa = function(final){
   return (selected_bacteria)
 }
 
+# extract 76 relevant taxa according to abundance threshold and presence in samples
 selected_taxa = extract_taxa(taxa_table)
 selected_taxa_names = colnames(selected_taxa)
-
-
-
-
-#taxa_table_6_num = as.data.frame(lapply(taxa_table_6,function(x) as.numeric(as.character(x))))
-#taxa_table_6_ab = as.data.frame(t(apply(taxa_table_6_num,1, function(x){100*x/sum(x)})))
-#rownames(taxa_table_6_ab) = rownames(taxa_table_6)
-
-#taxa_table_6_ab$k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Bacteroidaceae.g__Bacteroides
-
 ```
 
 # HEATMAP CORRELATION NUTRIENTS - TAXA
 
 ```{r}
-# Creating Heatmap with correlation between selected nutrients and 76 selected taxa.
+# Instead of creating Heatmap with correlation between selected nutrients and all 76 selected taxa, the heatmap plot will be on Spearman correlation between selected nutrients and relevant genera taxa.
 
 genera = extract_taxa(taxa_table_6)# only relevant genera 
 
@@ -318,7 +299,8 @@ final_nutrients_ab = as.data.frame(t(apply(final_nutrients,1, function(x){100*x/
 
 
 colnames(genera_names) = unlist(lapply(colnames(genera_names), function(x) strsplit(x,"g__")[[1]][2]))
-# merge columns with same name (= equal genera) to plot in heatmap
+
+# merge columns with same name (= equal genera) to plot them in the heatmap
 genera_names = as.data.frame(sapply(split.default(genera_names, names(genera_names)), rowSums, na.rm = TRUE))
 
 
@@ -331,35 +313,19 @@ microbiome_nutrients_data[,c("id")] <- list(NULL)
 a = cbind(final_nutrients_ab,genera)
 nutrients_microbiome_correlations = cor(microbiome_nutrients_data,method= "spearman")[1:ncol(final_nutrients_ab),(ncol(final_nutrients_ab)+1):ncol(microbiome_nutrients_data)]
 
-
-#correlation_data <- melt(nutrients_microbiome_correlations)
-#names(correlation_data) = c("Taxa","Nutrient","correlation")
-
-
-#ggplot(data = correlation_data, aes(x=Taxa, y=Nutrient, fill=correlation)) + 
-#  geom_tile() +
-#  scale_fill_gradient2(low="darkblue", high="red", guide="colorbar")
-
-
 heatmaply(nutrients_microbiome_correlations,colors = hcl.colors(100,palette="RdBu"), k_row = 4, k_col = 4,
           main ="Correlations between Genera Taxa and Nutrients",fontsize_row = 8,column_text_angle = 90,key.title = "Spearman Correlation") %>% layout(height=1300,width=900) 
-
-# ATTENZIONE: i risultati della nostra heatmap sono diversi rispetto a quelli del paper: bacteroides poco correlato con i nutrienti da noi, mentre nel paper molto correlato.
 
 ```
 
 ### CLUSTERING: 
 
-```{r}
-# Aggregating taxa by 6th taxonomy level (i.e. genera): 119 taxa obtained. These taxa will be used to cluster microbiomes and analyze enterotypes.
-otu_table_genera <- as.data.frame(t(otu_table(physeq_genera)))
-```
 
 # DISTANCE BETWEEN MICROBIOMES BASED ON 6th TAXA AGGREGATION
-
-
 ```{r}
 # Compute Jensen Shannon, Euclidean and Bray-Curtis divergence matrices on gut microbiomes based on 119 taxa obtained.
+
+otu_table_genera <- as.data.frame(t(otu_table(physeq_genera)))
 
 dist_eucl = dist(otu_table_genera)
 #dist_jsd = as.dist(philentropy::JSD(as.matrix(otu_table_genera)))
@@ -389,10 +355,7 @@ print (c("Silhouette:",round(max(nclusters_jsd),2)))
 print (c("optimal clusters numbers Euclidean:",(which.max(nclusters_eucl) + 1)))
 print (c("Silhouette:",round(max(nclusters_eucl),2)))
 
-# JSD clustering has a Silhouette coefficient of 0.57 so it will be choosen.
-
-# Heatmap of distance between sample 
-#heatmap(as.matrix(dist_jsd))
+# JSD clustering has the higher Silhouette coefficient so it will be choosen.
 
 ```
 
@@ -403,12 +366,11 @@ print (c("Silhouette:",round(max(nclusters_eucl),2)))
 selected_clustering <- cluster::pam(dist_jsd,2,diss = T, metric = "euclidean") #get cluster 
 cluster_assignment = as.data.frame(selected_clustering$clustering)
 colnames(cluster_assignment) = "cluster"
-#rownames(cluster_assignment) = rownames(otu_table_genera)
 
 
-pcoa = dudi.pco(dist_jsd) # select at least 10 pcs
+pcoa = dudi.pco(dist_jsd, full = TRUE)
 
-# % of explained variance
+# % of explained variance barplot
 barplot(100*pcoa$eig/sum(pcoa$eig))
 
 first_pcs = as.data.frame(cbind(pcoa$li[,1],pcoa$li[,2]))
@@ -437,30 +399,11 @@ ggplot(data_pca_clu, aes(x=PC1,y=PC2,color=factor(cluster)))+geom_point(size=2)+
 ```
 
 ```{r}
+# Generating boxplot for two bacteria genera (Prevotella and Bacteroides) in the two enterotype clusters 
+
 table_taxa_clusters = merge(otu_table_genera, cluster_assignment, by = 0)
 rownames(table_taxa_clusters) = table_taxa_clusters$Row.names
 table_taxa_clusters[,'Row.names'] <- list(NULL)
-
-#cluster1 = table_taxa_clusters[table_taxa_clusters$cluster == 1,]
-#cluster2 = table_taxa_clusters[table_taxa_clusters$cluster == 2,]
-
-#cluster1_abundances <- as.data.frame(t(apply(cluster1,1, function(x){x/sum(x)})))
-#cluster2_abundances = as.data.frame(t(apply(cluster2,1, function(x){x/sum(x)})))
-
-#cluster1_abundances = cluster1
-#cluster2_abundances = cluster2
-
-# Select abundances of bacteroides and prevotella genera in cluster 1 and cluster 2
-#prevotella_cl1 = (cluster1_abundances$k__Bacteria_p__Bacteroidetes_c__Bacteroidia_o__Bacteroidales_f__Prevotellaceae_g__Prevotella + cluster1_abundances$k__Bacteria_p__Bacteroidetes_c__Bacteroidia_o__Bacteroidales_f__Pararevotellaceae_g__Prevotella)  # ATTENZIONE: esiste anche [Prevotella]! va fatta pulizia dopo la funzione aggregate_taxa
-#prevotella_cl2 = (cluster2_abundances$k__Bacteria_p__Bacteroidetes_c__Bacteroidia_o__Bacteroidales_f__Prevotellaceae_g__Prevotella + cluster2_abundances$k__Bacteria_p__Bacteroidetes_c__Bacteroidia_o__Bacteroidales_f__Pararevotellaceae_g__Prevotella)
-#bacteroides_cl1 = cluster1_abundances$g__Bacteroides
-#bacteroides_cl2 = cluster2_abundances$g__Bacteroides
-
-# preparing data for bacteroides boxplot
-#bacteroides_ab = c(bacteroides_cl1,bacteroides_cl2)
-#bacteroides_cluster = c(rep(1,length(bacteroides_cl1)),rep(2,length(bacteroides_cl2)))
-#bacteroides = as.data.frame(cbind(bacteroides_ab,bacteroides_cluster))
-#colnames(bacteroides) = c("Bacteroides abundance","cluster")
 
 # preparing data for prevotella boxplot
 
@@ -488,9 +431,6 @@ ggplot(prevotella, aes(x=cluster, y=prevotella, fill=cluster)) +
 # ASSOCIATIONS NUTRIENTS - ENTEROTYPE CLUSTERS
 
 ```{r}
-# merge nutrients dataset with data_pca dataset
-
-
 # Function to standardize nutrients dataframe
 standardize = function(col){
   col <- (col - mean(col)) / sd(col)
@@ -508,43 +448,21 @@ nutriens_cl1 = nutriens_with_clusters[nutriens_with_clusters$cluster==1,]
 nutriens_cl2 = nutriens_with_clusters[nutriens_with_clusters$cluster==2,]
 
 
-# Compute trenght of associations between enterotype cluster and nutrients.
+# Compute strenght of associations between enterotype cluster and nutrients.
 strength_nutrients_enterotype1_association = as.matrix(colMeans(nutriens_cl1[,-1]))
 strength_nutrients_enterotype2_association = as.matrix(colMeans(nutriens_cl2[,-1]))
 associations = cbind(strength_nutrients_enterotype1_association,strength_nutrients_enterotype2_association)
 
 associations_data <- as.data.frame(associations)
-#associations_data$Nutrients <- rownames(associations_data)
+
 associations_data <- associations_data[-1,]
 rownames(associations_data) <- rownames(associations)[-1]
 colnames(associations_data) = c("Enterotipo 1 (Prevotella)", "Enterotipo 2 (Bacteroides)")
 
+
+# Plot association between enterotype clusters and nutrients
 heatmaply(as.data.frame(t(associations_data)),colors = hcl.colors(100,palette="RdBu"),
           main ="Associazione tra nutrienti ed enterotipi",fontsize_row = 12, fontsize_col = 8,column_text_angle = 90,dendrogram = "column",k_col = 4) %>% layout(height=500,width=1400)
-
-
-
-#associate_cluster_to_nutrients <- function(data, n, cluster){
-#      data_modified <-  data[,c(n,3)]
-#      data_modified$cluster <- cluster
-#      colnames(data_modified)[1] <- "Value"
-#      return (data_modified) 
-#}
-  
-#associations_cl1 <- associate_cluster_to_nutrients(associations_data, n = 1, cluster = "1")
-#associations_cl2 <- associate_cluster_to_nutrients(associations_data, n = 2, cluster = "2")
-
-#associations_nutrients_cluster <- rbind(associations_cl1,associations_cl2)
-
-
-# Heatmap of associations enterotype clusters - nutrients
-#ggplot(data = associations_nutrients_cluster,
-#       aes(x = cluster, y = Nutrients, fill = Value)) + 
-#    geom_raster()  +
-#    xlab("Cluster") + 
-#    scale_fill_distiller(palette = "RdYlBu") +
-#    theme(axis.text.y = element_text(size = 6, angle = 0)) + #element_blank() (#axis.text.x = element_text(),
-#    ggtitle("ggplot heatmap")
 
 ```
 
@@ -552,6 +470,7 @@ heatmaply(as.data.frame(t(associations_data)),colors = hcl.colors(100,palette="R
 
 ```{r}
 #Unione df nutrienti selezionati dopo Permanova con il df che ha la variabile target bmi
+# Merging selected nutrients data with demographical data 
 
 final_nutrients$id <- gsub("1011.C.", "", rownames(final_nutrients))
 
@@ -581,16 +500,11 @@ dataset_demo_nutrients_taxa = merge(bmi_nutrients, genera_taxa_abundances, by = 
 
 pca_nutrients = as.data.frame(prcomp(final_nutrients[,-ncol(final_nutrients)],scale=TRUE)$x[,1:5])
 
-(100*(pca2$sdev^2)/sum(pca2$sdev^2)) # % of variance explained from each nutrients pc
+#(100*(pca2$sdev^2)/sum(pca2$sdev^2)) # % of variance explained from each nutrients pc
 
 
 colnames(pca_nutrients) = c("PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut")
 
-
-100*(pcoa$eig/sum(pcoa$eig)) # % of variance explained from each bacteria taxa (119) pc
-pca_bacteria_taxa = pcoa$li[,1:6]
-colnames(pca_bacteria_taxa) = c("PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa")
-rownames(pca_bacteria_taxa) = rownames(otu_table_genera)
 
 
 genera$id <- gsub("1011.C.", "", rownames(genera))
@@ -600,8 +514,7 @@ pca_genera = as.data.frame(prcomp(genera_without_ids)$x[,1:2])
 colnames(pca_genera) = c("PC1_taxa","PC2_taxa")
 
 
-
-100*(pcoa$eig/sum(pcoa$eig)) # % of variance explained from each bacteria taxa (119) pc
+#100*(pcoa$eig/sum(pcoa$eig)) # % of variance explained from each bacteria taxa (119) pc
 pca_bacteria_taxa = pcoa$li[,1:6]
 colnames(pca_bacteria_taxa) = c("PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa")
 rownames(pca_bacteria_taxa) = rownames(otu_table_genera)
