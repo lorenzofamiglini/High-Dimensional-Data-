@@ -1,5 +1,5 @@
 # High-Dimensional-Data
 
-Hdda_project_true: Tutto mergiato in questo unico file rmd 
+final_script.rmd per analisi descrittiva + generazione dei 2 dataframe
 
-HDDA_preprocessing.py: filtro abbondanza secondo criteri stabiliti
+data_analysis_hdda.rmd per predizione BMI
