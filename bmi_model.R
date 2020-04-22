@@ -9,11 +9,11 @@ head(df$id)
 bmi_column <- 11
 sex_column <-4
 age_column <- 9
-nutrients_columns <- 12:119
-microbes_columns <- 120:238
-pca_nutrients_columns <- 239:243
-pcs_taxonomies_columns <- 244:249
-cluster_column <- 250
+nutrients_columns <- 15:106
+microbes_columns <- 107:225
+pca_nutrients_columns <- 226:230
+pcs_taxonomies_columns <- 231:236
+cluster_column <- 237
 
 
 # t test for sex regressor in bmi
@@ -116,25 +116,24 @@ create_df <- function(x, met = "std"){
 
 dataset <- df[, c(bmi_column, nutrients_columns, microbes_columns, sex_column, age_column, cluster_column)]
 # togliamo zbmius e zbmicatus poiche' contenenti troppi na
-summary(dataset[, c(2,3)])
-trash_column = c(2,3,4)
-dataset2 <- dataset[,-trash_column]
-na_cord = which(is.na(dataset2), arr.ind = T)
-dataset2[na_cord] = 0
 # one hot encoding
-clusters = names(table(dataset2[, 228]))
-dataset2[dataset2$cluster==clusters[1], 229] = 0
-dataset2[dataset2$cluster==clusters[2], 229] = 1
-dataset3 = dataset2[,-228]
+clusters = names(table(dataset[, 215]))
+dataset[dataset$cluster==clusters[1], 216] = 0
+dataset[dataset$cluster==clusters[2], 216] = 1
+dataset3 = dataset[,-215]
 demo_taxa_nutr_cluster_model = print_lasso(dataset3)
 bmi_column2 = 1
-nutrients_columns2 = 2:106
-microbes_columns2 = 107:225
-sex_column2 = 226
-age_column2 = 227
-cluster_column2 = 228
+nutrients_columns2 = 2:93
+microbes_columns2 = 94:212
+sex_column2 = 213
+age_column2 = 214
+cluster_column2 = 215
+names(dataset3)[ncol(dataset3)] = "cluster"
 demo_taxa_cluster = dataset3[, c(bmi_column2, microbes_columns2, sex_column2, age_column2, cluster_column2 )]
 demo_nutrients_cluster = dataset3[, c(bmi_column2, nutrients_columns2, sex_column2, age_column2, cluster_column2 )]
+write.csv(dataset3, file="demo_taxa_nutr_cluster.csv")
+write.csv(demo_taxa_cluster, file="demo_taxa_cluster.csv")
+write.csv(demo_nutrients_cluster, file="demo_nutrients_cluster.csv")
 demo_taxa_cluster_model = print_lasso(demo_taxa_cluster)
 demo_nutrients_cluster_model = print_lasso(demo_nutrients_cluster)
 
