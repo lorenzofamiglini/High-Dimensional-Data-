@@ -127,6 +127,7 @@ dataset2[dataset2$cluster==clusters[1], 229] = 0
 dataset2[dataset2$cluster==clusters[2], 229] = 1
 dataset3 = dataset2[,-228]
 demo_taxa_nutr_cluster_model = print_lasso(dataset3)
+write.csv(dataset3, file="demo_taxa_nutr_cluster.csv")
 bmi_column2 = 1
 nutrients_columns2 = 2:106
 microbes_columns2 = 107:225
@@ -135,6 +136,8 @@ age_column2 = 227
 cluster_column2 = 228
 demo_taxa_cluster = dataset3[, c(bmi_column2, microbes_columns2, sex_column2, age_column2, cluster_column2 )]
 demo_nutrients_cluster = dataset3[, c(bmi_column2, nutrients_columns2, sex_column2, age_column2, cluster_column2 )]
+write.csv(demo_taxa_cluster, file="demo_taxa_cluster.csv")
+write.csv(demo_nutrients_cluster, file="demo_nutrients_cluster.csv")
 demo_taxa_cluster_model = print_lasso(demo_taxa_cluster)
 demo_nutrients_cluster_model = print_lasso(demo_nutrients_cluster)
 

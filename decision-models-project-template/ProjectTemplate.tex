@@ -53,15 +53,15 @@
 %----------------------------------------------------------------------------------------
 
 \textsc{\LARGE Università degli studi di Milano-Bicocca}\\[1cm] % Name of your university/college
-\textsc{\Large Decision Models}\\[0.3cm] % Major heading such as course name
-\textsc{\large Final Project}\\[0.1cm] % Minor heading such as course title
+\textsc{\Large High Dimensional Data Analysis}\\[0.3cm] % Major heading such as course name
+\textsc{\large }\\[0.1cm] % Minor heading such as course title
 
 %----------------------------------------------------------------------------------------
 %	TITLE SECTION
 %----------------------------------------------------------------------------------------
 
 \HRule \\[0.4cm]
-{ \huge \bfseries Title}\\[0.4cm] % Title of your document
+{ \huge \bfseries Linking Long-Term Dietary Patterns with Gut Microbial Enterotypes}\\[0.4cm] % Title of your document
 \HRule \\[1.5cm]
  
 %----------------------------------------------------------------------------------------
@@ -70,8 +70,9 @@
 
 \large
 \emph{Authors:}\\
-John Smith - XSFT901121- john.smith@email.com \\   % Your name
-John Doe - MTS4128991- john.doe@email.com   \\[1cm] % Your name
+Lorenzo Camaione - 850380- l.camaione@campus.unimib.it \\   % Your name
+Martino Lorenzo Tenconi - MTS4128991- m.tenconi3@campus.unimib.it \\  % Your name
+Lorenzo Famiglini - MTS4128991- l.famiglini@campus.unimib.it   \\[1cm] % Your name
 
 % If you don't want a supervisor, uncomment the two lines below and remove the section above
 %\Large \emph{Author:}\\
@@ -101,12 +102,28 @@ The ABSTRACT is not a part of the body of the report itself. Rather, the abstrac
 \end{abstract}
 
 \section{Introduction}
-The introduction should provide a clear statement of the problem posed by the project, and why the problem is of interest. It should reflect the scenario, if available. If needed, the introduction also needs to present background information so that the reader can understand the significance of the problem. A brief summary of the hypotheses and the approach your group used to solve the problem should be given, possibly also including a concise introduction to theory or concepts used later to analyze and to discuss the results.
-
+La dieta influenza significativamente la salute umana ed in parte anche il microbioma dell’intestino. In questo studio, da un campione di 97 persone, sono stati estratti dati sulla loro dieta e la composizione del DNA delle loro feci. I batteri presenti nelle feci possono essere clusterizzati in enterotipi che differiscono tra loro perlopiù per i livelli di Bacteroides e Prevotella. Inoltre, questi enterotipi possono essere associati con diete assunte per un lungo periodo. In particolare alti livelli di Bacteroides possono essere associati a diete ricche di proteine e grasso animale mentre alti livelli di Prevotella con carboidrati. 
+Oltre ad analizzare l’associazione dieta-enterotipo si sono anche studiati dei modelli che spiegano il livello di BMI in funzione di nutrienti, microbioma e fattori demografici.
 
 \section{Datasets}
-In this section the available data sets must be presented. The term dataset refers to any type of information source, for example web services for geolocation fall into this category. 
-In addition, all necessary data manipulation processes, such as cleaning and enrichment with external sources, must be presented and discussed.
+I dataset a disposizione per le analisi sono forniti dal portale QIITA (study ID 1011) e sono rappresentati da una tabella OTU, una tavola tassonomica e un questionario FFQ relativo ai nutrienti assunti dai soggetti nella dieta a lungo termine. La tabella OTU, di dimensioni 3393 x 100, contiene il numero di sequenze che sono state osservate per ognuno dei 3393 batteri presenti nel microbioma di ciascuno dei 100 pazienti. Ognuno dei batteri può essere presente o assente nel microbioma di ogni paziente e la combinazione di questi valori determina il microbioma vero e proprio di ciascun paziente. La tavola tassonomica permette di collegare gli identificativi dei batteri presenti nella tabella OTU alle loro tassonomie; in questa tavola sono indicati per ognuno dei 3393 batteri i sette livelli tassonomici regno, phylum, classe, ordine, famiglia, genere e specie. Infine il questionario dei nutrienti contiene, per 98 soggetti, le quantità di ciascuno dei nutrienti assunti in una dieta di lungo periodo. In aggiunta a questi tre dataset vi è una quarta tabella contenente gli id dei 100 soggetti in studio e una serie di variabili, come ad esempio il genere, l’altezza, il peso, l’età e il Body Mass Index (BMI) a loro associate. Le informazioni estratte da questo ultimo dataset, combinate con le variabili estratte nella fase di preprocessing, saranno utilizzate per scopi di analisi predittiva del BMI.
+
+\subsection{Preprocessing}
+Si è effettuata una prima pulizia della tavola tassonomica rimuovendo caratteri speciali dai nomi delle tassonomie e si sono analizzate quindi la tavola e le osservazioni per ciascuna colonna indicante il livello tassonomico. Poiché lo studio [referenza paper] è improntato all’analisi dei batteri a livello di genere, ci si concentra sull’analisi delle variabili indicanti i nomi delle tassonomie fino al sesto livello, ignorando la specie dei batteri osservati. La tavola tassonomica presenta un totale di 1526 batteri con genere non identificato e dunque ai fini della analisi si considerano per questi batteri i soli livelli precedenti presenti; ad esempio per un batterio che ha classificazione fino al quarto livello (“ordine”) si considerano unicamente le prime quattro tassonomie eliminando quindi i valori mancanti per i successivi livelli. A questo punto vengono raggruppati tra loro i batteri nella tabella OTU che hanno la stessa classificazione fino all’ultimo livello presente; si ottengono quindi cinque dataset, ognuno per ogni livello tassonomico da phylum a genere, contenenti le possibili aggregazioni osservate per il relativo livello. Per ognuna di queste cinque tabelle sono calcolate le abbondanze relative dei batteri, ovvero la presenza in termini percentuali di ciascun batterio in ognuno dei 100 individui considerati. Aggregando queste cinque tabelle si ottengono 198 possibili livelli di aggregazione dei batteri osservati. Sono state considerate, in seguito, solamente le tassonomie presenti in almeno il 10\% dei soggetti che avessero un valore di abbondanza relativa maggiore o uguale allo 0.2\% in almeno uno dei soggetti. In questo modo sono state ottenute 76 tassonomie.
+Inoltre, per scopi successivi nelle analisi, si decide di creare una tabella OTU contenente i batteri aggregati al solo livello di genere o superiore ove mancante (famiglia, genere, classe, …), ottenendo così 119 tassonomie differenti. 
+Si mostrano le abbondanze nei 97 pazienti dei generi di batteri osservati:
+
+
+figura  
+
+Per quanto riguarda il dataset dei nutrienti, di dimensione 98 x 215, sono state selezionate soltanto le 97 righe con identificativo del soggetto nello studio presente anche nella tabella OTU citata in precedenza. 
+Per valutare quali nutrienti fossero maggiormente significativi a livello di impatto sulla composizione del  intestinale, è stata considerato l’intero insieme dei 3393 diversi batteri non aggregati per livello tassonomico come indicatore di variabilità della composizione del microbioma stesso. Sulle abbondanze della tabella OTU originaria sono state dunque calcolate le distanze tra i microbiomi intestinali dei 97 soggetti con la metrica Unifrac non pesata, individuata come metodo maggiormente discriminante per le differenze di composizione dei microbiomi rispetto alla stessa metrica Unifrac pesata, che tiene quindi in considerazione la quantità di ciascun batterio nel microbioma, piuttosto che la semplice presenza/assenza come nel caso della metrica non pesata. Il calcolo della distanza utilizzando la Unifrac non pesata avviene tramite la formula: 
+$$\frac{sum\: of \:unshared \:branch\: lengths}{sum\: of\: all\: tree\: branch\: lengths} = fraction\: of\: total \:unshared \:branch \:lengths$$
+
+Una volta calcolata la matrice delle distanze non pesate Unifrac sui 97 microbiomi intestinali, è stato possibile effettuare la PERMANOVA su ciascuno dei nutrienti standardizzati della tabella. A differenza della ANOVA, che si basa sull’ipotesi di normalità, la PERMANOVA traccia test di significatività confrontando il risultato del test F reale con quello ottenuto dalle permutazioni casuali degli oggetti tra i gruppi senza fare alcuna assunzione sulla distribuzione dei dati; inoltre, mentre ANOVA verifica la somiglianza delle medie tra i gruppi basandosi sui dati, la PERMANOVA utilizza in input una matrice di distanze. Ognuno dei nutrienti è stato valutato significativo se il valore di False Discovery Rate FDR (percentuale di volte in cui si rifiuta l’ipotesi nulla quando invece è vera) è minore al 25\%. Come descritto nel paper di riferimento, una questa soglia relativamente alta è stata utilizzata per non escludere dall’analisi nutrienti associati a batteri con valori di abbondanza relativa non particolarmente alti.
+I batteri e i nutrienti selezionati sono stati utilizzati per costruire due dataset con lo scopo di effettuare l’analisi predittiva del BMI. Sono state estratte le prime 6 componenti principali dei nutrienti selezionati (varianza catturata pari a x\%) e le prime 5 per quanto riguarda le tassonomie rilevanti, con un x\% di varianza catturata. Le differenze tra i 2 dataset sono esclusivamente dovute alle tassonomie dei batteri considerati: mentre nel primo dataset sono state considerate tutte le 119 tassonomie a livello di genere o superiore se mancante, nel secondo dataset sono state inserite solamente le tassonomie a livello di genere, senza considerare potenziali livelli superiori. Le componenti principali presenti nei due dataset sono state estratte da queste due diverse aggregazioni. I dataset utilizzati per l’analisi predittiva sono stati suddivisi in training e test: la parte dedicata all’addestramento dei modelli è risultata essere il x\%, lasciando il x\% dei dati per la validazione dei modelli.
+
+
 
 \section{The Methodological Approach}
 
