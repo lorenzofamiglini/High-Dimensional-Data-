@@ -64,6 +64,8 @@ legend("topright",
        lty=1:2, col=c("red","black"), cex=.7)
 }
 #Densità + Forma
+dist_y_plt <- yplot(df$bmi)
+ggsave("distribuzione_y", dist_y_plt, height=8.5, width=15.57)
 yplot(df$bmi)
 yplot(log(df$bmi))
 
@@ -103,9 +105,11 @@ text(df$bmi, labels=df$id, cex= 0.7)
 
 ```{r}
 no_out <- df
-id_out <- c(4018,4009,3056,3046,3022,3018)
+no_out <- subset(no_out, bmi <= 33)
+rownames(no_out)
+#id_out <- c(4018,4009,3056,3046,3022,3018)
 #no_out <- df[-c(15,52,83,88,48),]
-no_out <- no_out[!(no_out$id %in% id_out),]
+#no_out <- no_out[!(no_out$id %in% id_out),]
 ```
 
 ```{r}
@@ -136,13 +140,14 @@ aggregate(no_out$bmi, list(no_out$sex1m2f), sd)
 ```{r}
 #Analisi per età:
 no_out$age <- as.integer(no_out$age)
-no_out$age_discr <- quantcut(no_out$age,3) #quantile discretization in 3 bins
+no_out$age_discr <- quantcut(no_out$age,2) #quantile discretization in 3 bins
 ggplot(no_out, aes(x = bmi, fill = age_discr)) + 
  geom_density(size = 0.6, alpha = .3, colour = "black") + 
  geom_rug(aes(x = bmi,y = 0), position = position_jitter(height = 0)) +
  labs(x = "Bmi", y =
 "Densita'", fill = "Eta' discretizzata") +
- ggtitle("Come si distribuisce il bmi rispetto all'eta'") 
+ ggtitle("Come si distribuisce il bmi rispetto all'eta'") +
+  scale_fill_manual(labels = c("Giovani", "Adulti"), values = c("green","lightgrey"))
 ```
 Chi-squared test tra fasce di età e bmi:
 ```{r}
@@ -171,11 +176,11 @@ plot(no_out[,var_num],cex=.8, col = "tomato")
 var_num <- c("bmi", "PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa","age", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut",
              "sex1m2f")
 library(corrplot)
-png(height=1200, width=1500, pointsize=25,file="immagini/corr_plot.png")
+png(height=1200, width=1500, pointsize=25,file="plot/corr_plot_regressori.png")
 
 coor <- cor(no_out[,var_num], method = "spearman")
-corr_plot <- corrplot(coor, method="color", addCoef.col="black", order = "AOE", title = "Analisi correlazione di Spearman",
-                      mar=c(1,1,1,1))
+corr_plot <- corrplot(coor, method="color", addCoef.col="black", col = rev(hcl.colors(100,palette="RdBu")), title = "Analisi correlazione di Spearman",
+                      mar=c(1,1,1,1), order = "AOE")
 dev.off()
 
 ```
@@ -187,6 +192,7 @@ Modellazione
 #Train e test split:
 # Random sample indexes
 set.seed(20)
+rownames(no_out) <- c(1:nrow(no_out))
 train_index <- sample(1:nrow(no_out), 0.9 * nrow(no_out))
 test_index <- setdiff(1:nrow(no_out), train_index)
 
@@ -236,10 +242,11 @@ get_confid_i <- function(model1, model_type = "Mod1"){
   return(get_df)
 }
 
+
 info_mod1 <- get_confid_i(model1)
-
-Metrics::mape(predict(model1,X_test), y_test)
-
+get_r2(predict(model1,X_test), y_test)
+Metrics::rmse(predict(model1,X_test), y_test)
+final_info
 ```
 
 Modello 2: PCA nutrienti + variabili demografiche + clustering: 
@@ -328,18 +335,22 @@ library(leaps)
 library(MASS)
 
 new_df <- read.csv("datasets/genera_all_vars_df.csv")
-id_out <- c(4018,4009,3056,3046,3022,3018)
+new_df <- subset(new_df, bmi <= 33)
+plot(new_df$bmi)
+plot(df$bmi)
+colnames(new_df)
+#id_out <- c(4018,4009,3056,3046,3022,3018)
 new_df$age <- as.integer(new_df$age)
 #new_df <- new_df
 
-new_df <- new_df[!(new_df$id %in% id_out),]
+#new_df <- new_df[!(new_df$id %in% id_out),]
 lista <- c("id","visitdate","heightcm","vdate","heightm","zbmius","zbmicatus","birthdate","bdate","bmicat1norm2ow3ob","weightkg",
            "PC1_taxa","PC2_taxa")
 
 new_df[,lista] <- list(NULL)
 new_df2 <- new_df
-new_df <- new_df[,-c(4:108)]
-
+new_df <- new_df[,-c(4:95)]
+rownames(new_df) <- c(1:nrow(new_df))
 
 #Train e test split:
 # Random sample indexes
@@ -349,12 +360,18 @@ new_df <- new_df[,-c(4:108)]
 
 # Build X_train, y_train, X_test, y_test
 X_train <- new_df[train_index, -3]
+
 y_train <- new_df[train_index, "bmi"]
 
 X_test <- new_df[test_index, -3]
 y_test <- new_df[test_index, "bmi"]
 
 train_data <- cbind(y_train,X_train)
+colnames(train_data)
+train_data[, c(4:38)] <- scale(train_data[, c(4:38)])
+X_test[,c(3:37)] <- scale(X_test[,c(3:37)])
+
+colnames(X_test)
 # Fit the full model 
 full.model <- lm(y_train  ~. , data = X_train)
 
@@ -372,36 +389,27 @@ step.modelf
 summary(step.modelb)
 summary(step.modelf)
 
-#Oppure: 
-# Train the model
-train.control <- trainControl(method = "cv", repeats = 1, number = 9,savePred=T) #procedura di crossvalidation, number = 9, repeats = 1
+
+#Di nuovo stepwise regression nel subset scelto: 
+train.control <- trainControl(method = "cv", number = 9,savePred=T,
+                              returnResamp = "all") #procedura di crossvalidation, number = 9, repeats = 1
 step.modelB <- train(y_train ~., data = train_data,
-                    method = "leapBackward", 
-                    tuneGrid = data.frame(nvmax = 1:45), #da 1 a 3 variabili
+                    method = "leapForward", 
+                    tuneGrid = data.frame(nvmax = 1:43), #da 1 a 3 variabili
                     trControl = train.control
                     )
+ggplot(step.modelB, metric = "RMSE") 
 trellis.par.set(caretTheme())
 ggplot(step.modelB, metric = "MAE")  
 ggplot(step.modelB, metric = "Rsquared")
-ggplot(step.modelB, metric = "RMSE") 
+
 step.modelB$finalModel
 step.modelB$results
 
 coef(step.modelB$finalModel, as.double(step.modelB$bestTune))
-step.modelB$bestTune
+step.modelB$results
 summary(step.modelB$finalModel)
 step.modelB$results
-
-#Di nuovo stepwise regression nel subset scelto: 
-train.control <- trainControl(method = "cv", repeats = 1, number = 9,savePred=T,
-                              returnResamp = "all") #procedura di crossvalidation, number = 9, repeats = 1
-step.modelB <- train(y_train ~., data = train_data,
-                    method = "leapBackward", 
-                    tuneGrid = data.frame(nvmax = 1:45), #da 1 a 3 variabili
-                    trControl = train.control
-                    )
-
-step.modelB$finalModel
 
 ggplot(step.modelB, metric = "RMSE")
 resempla_cv <- step.modelB$resample
@@ -433,25 +441,30 @@ ci_stepwise_plot <- ggplot(mn_sd_cv) +
   geom_line(aes(x = `Regressor_#`,y = rsquared*10,color = "green")) + 
   geom_point(aes(x = `Regressor_#`,y = rsquared*10,color = "green")) + 
   scale_y_continuous(sec.axis = sec_axis(trans = ~./10,name = "R-squared")) + 
-labs(title="Stepwise Backward regression (CV 10 folds)",
+labs(title="Stepwise Forward regression (CV 10 folds)",
       subtitle="Intervallo di confidenza CV rispetto al RMSE, R-squared (valor medio)",
       y = "RMSE (mean cv)",
       x = "Numero di regressori",
      color = "Metrica")+
   scale_color_manual(values=c("blue", "black"), labels = c("CI 95% RMSE", "R-squared"))
-#ggsave("ci_stepwise_backward.png", plot = ci_stepwise_plot, height=8.5, width=15.57)
-```
+
+
+#ggsave("ci_stepwise_forward.png", plot = ci_stepwise_plot, height=8.5, width=15.57)
+
+
 
 #CV SU MODELLO SCELTO DALLA STEPWISE
 
 ```{r}
 #Best model in stepwise cv forward: 
-train.control <- trainControl(method = "cv", repeats = 1, number = 9,savePred=T) #procedura di crossvalidation, number = 9, repeats = 1
-model<- train(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Odoribacteraceae.g__Butyricimonas +
-    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
-      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Ruminococcaceae.g__Oscillospira + 
-    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
-    PC5_nut,data = train_data, method = "lm", 
+train.control <- trainControl(method = "cv", repeats = 1, number = 10,savePred=T) #procedura di crossvalidation, number = 9, repeats = 1
+model<- train(y_train ~ sex1m2f + age + Porphyromonadaceae.g__Parabacteroides +
+                Lachnospiraceae.g__Blautia  + 
+                Lachnospiraceae.g__Lachnobacterium + 
+                Veillonellaceae.g__Megasphaera + 
+                Veillonellaceae.g__Phascolarctobacterium + 
+                Veillonellaceae.g__Veillonella + 
+                Erysipelotrichaceae.g__Catenibacterium,data = train_data, method = "lm", 
                     #tuneGrid = data.frame(nvmax = 1:10), #da 1 a 3 variabili
                     trControl = train.control)
 
@@ -459,7 +472,7 @@ model<- train(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroi
 info_mod3 <- get_confid_i(model, model_type = "Mod3")
 final_info <- rbind(info_mod1,info_mod2, info_mod3)
 
-final_info$Rsquaredadj <- c(0.3551, 0.3446,0.5113)
+final_info$Rsquaredadj <- c(0.37, 0.29,0.49)
 ```
 
 
@@ -468,11 +481,13 @@ final_info$Rsquaredadj <- c(0.3551, 0.3446,0.5113)
 Modello Finale
 --------------
 ```{r}
-final_model <-lm(y_train ~  sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Odoribacteraceae.g__Butyricimonas +
-    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
-      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Ruminococcaceae.g__Oscillospira + 
-    k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
-    PC5_nut,data = train_data) #mape 0.07
+final_model <-lm(y_train ~   sex1m2f + age + Porphyromonadaceae.g__Parabacteroides +
+                   Lachnospiraceae.g__Blautia  + 
+                   Lachnospiraceae.g__Lachnobacterium + 
+                   Veillonellaceae.g__Megasphaera + 
+                   Veillonellaceae.g__Phascolarctobacterium + 
+                   Veillonellaceae.g__Veillonella + 
+                   Erysipelotrichaceae.g__Catenibacterium,data = train_data) #mape 0.07
 
 
 summary(final_model)
@@ -485,6 +500,7 @@ qqline(final_model$residuals, col = "steelblue", lwd = 2)
 ols_vif_tol(final_model) #VIF minore di 10 non sussiste collinearità delle variabili
 
 #Predizioni:
+
 predictions <- predict(final_model, X_test)
 
 Metrics::rmse(y_test,predictions) #3.44
@@ -575,7 +591,7 @@ dataset$X <- NULL
 lasso_plt <- print_lasso(dataset)
 coef(lasso_plt[[2]]$finalModel)
 print(coef(lasso_plt[[2]]$finalModel,lasso_plt[[2]]$finalModel$lambdaOpt))
-#ggsave("lasso_demo_nutriens_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
+#ggsave("Plot/lasso_demo_nutriens_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
 
 get_lasso <- function(lasso_plt, lamb = 0.6, typ = "lasso3"){
               train.control <- trainControl(method = "cv", repeats = 1, number = 10,savePred=T, 
@@ -586,32 +602,38 @@ get_lasso <- function(lasso_plt, lamb = 0.6, typ = "lasso3"){
               return(list(info_mod, model))
 }
 
-lass1 <- get_lasso(lasso_plt, lamb = 0.6, typ = "lasso1")
+lass1 <- get_lasso(lasso_plt, lamb = 0.675, typ = "lasso1")
 info_mod4 <- lass1[[1]]
 info_mod4$Rsquaredadj <-lass1[[2]]$results$Rsquared
 final_info <- rbind(final_info, info_mod4)
 lass1
+
+
 new_df$cluster <- NULL
-str(new_df)
+#str(new_df)
+colnames(new_df)
+new_df[,c(4:38)] <- scale(new_df[,c(4:38)])
 lasso_plt <- print_lasso(new_df)
 print(coef(lasso_plt[[2]]$finalModel,lasso_plt[[2]]$finalModel$lambdaOpt))
 
 lasso_plt[[4]]
-ggsave("lasso_demo_37taxa_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
+#ggsave("Plot/lasso_demo_37taxa_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
 
-lass2 <- get_lasso(lasso_plt,lamb = 0.8, typ = "lasso2")
+lass2 <- get_lasso(lasso_plt,lamb = 0.7, typ = "lasso2")
 info_mod5 <- lass2[[1]]
 info_mod5$Rsquaredadj <-lass2[[2]]$results$Rsquared
 
 final_info <- rbind(final_info, info_mod5)
 
-new_df2 <- new_df2[,-c(147:151)]
+new_df2 <- new_df2[,-c(131:135)]
+
 new_df2 <- new_df2[,-ncol(new_df2)]
+new_df2[,c(96:130)] <- scale(new_df2[,c(96:130)])
 lasso_plt <- print_lasso(new_df2)
 print(coef(lasso_plt[[2]]$finalModel,lasso_plt[[2]]$finalModel$lambdaOpt))
-#ggsave("lasso_demo_37taxa_nutriens_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
+#ggsave("Plot/lasso_demo_37taxa_nutriens_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
 lasso_plt[[2]]$bestTune
-lass3 <- get_lasso(lasso_plt,lamb = 0.85, typ = "lasso3")
+lass3 <- get_lasso(lasso_plt,lamb = 0.725, typ = "lasso3")
 info_mod6 <- lass3[[1]]
 info_mod6$Rsquaredadj <-lass3[[2]]$results$Rsquared
 
@@ -646,49 +668,50 @@ labs(title="Intervallo di confidenza CV rispetto al RMSE",
 ```{r}
 training_set = dataset[train_index,]
 test_set = dataset[-train_index,]
-mod_lasso_1 <- glmnet::glmnet(as.matrix(training_set[,-1]), as.matrix(training_set[,1]), alpha = 1, lambda = 0.43)
+mod_lasso_1 <- glmnet::glmnet(as.matrix(training_set[,-1]), as.matrix(training_set[,1]), alpha = 1, lambda = 0.675)
 
-pred_lasso1 <- predict(mod_lasso_1, s = 0.43, newx = as.matrix(test_set[,-1]))
-Metrics::msre(test_set[,1],pred_lasso1) #3.645
+pred_lasso1 <- predict(mod_lasso_1, newx = as.matrix(test_set[,-1]))
+Metrics::rmse(test_set[,1],pred_lasso1) #3.645
 get_r2(test_set[,1],pred_lasso1)
 
 new_df$cluster <- as.character(new_df$cluster)
 new_df$cluster[new_df$cluster == "Bacteroides"] = 1
 new_df$cluster[new_df$cluster == "Prevotella"] = 2
 new_df$cluster <- as.numeric(new_df$cluster)
-mod_lasso_2 <- glmnet::glmnet(as.matrix(new_df[train_index,-3]), as.matrix(new_df[train_index,3]), alpha = 1, lambda = 0.6)
+new_df[,c(4:38)] <- scale(new_df[,c(4:38)])
+mod_lasso_2 <- glmnet::glmnet(as.matrix(new_df[train_index,-3]), as.matrix(new_df[train_index,3]), alpha = 1, lambda = 0.70)
 
-pred_lasso2 <- predict(mod_lasso_2, s = 0.6, newx = as.matrix(new_df[test_index,-3]))
+pred_lasso2 <- predict(mod_lasso_2, newx = as.matrix(new_df[test_index,-3]))
 Metrics::rmse(new_df[test_index,3],pred_lasso2) #3.015
 get_r2(new_df[test_index,3],pred_lasso2)
 
-mod_lasso_3 <- glmnet::glmnet(as.matrix(new_df2[train_index,-3]), as.matrix(new_df2[train_index,3]), alpha = 1, lambda = 0.85)
+mod_lasso_3 <- glmnet::glmnet(as.matrix(new_df2[train_index,-3]), as.matrix(new_df2[train_index,3]), alpha = 1, lambda = 0.725)
 
-pred_lasso3 <- predict(mod_lasso_3, s = 0.85, newx = as.matrix(new_df2[test_index,-3]))
+pred_lasso3 <- predict(mod_lasso_3, newx = as.matrix(new_df2[test_index,-3]))
 Metrics::rmse(new_df2[test_index,3],pred_lasso3) #3.006
 
-#get_r2(new_df2[test_index,3],pred_lasso3)
+get_r2(new_df2[test_index,3],pred_lasso3)
 
 ```
 
 RISULTATI TEST (RMSE):
-LASSO 1: 3.645
-LASSO 2: 3.015
-LASSO 3: 3.006
-Modello lineare 1: 3.332
-Modello lineare 2: 3.221
-Stepwise regression: 3.441
+LASSO 1: 3.524
+LASSO 2: 3.351
+LASSO 3: 2.921
+Modello lineare 1: 3.221
+Modello lineare 2: 3.313
+Stepwise regression: 2.734
 
 RISULTATI TEST (R-squared):
-LASSO 1: 0.296
-LASSO 2: 0.333
-LASSO 3: 0.334
-Modello lineare 1: 0.339
-Modello lineare 2: 0.346
-Stepwise regression: 0.382
+LASSO 1: 0.530
+LASSO 2: 0.493
+LASSO 3: 0.551
+Modello lineare 1: 0.534
+Modello lineare 2: 0.520
+Stepwise regression: 0.501
 
 ```{r}
-
+final_info
 ```
 
 
