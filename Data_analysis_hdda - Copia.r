@@ -729,7 +729,6 @@ Modello lineare 1: 3.221
 Modello lineare 2: 3.313
 Stepwise regression: 2.734
 
-
 ```{r}
 final_info
 ```
