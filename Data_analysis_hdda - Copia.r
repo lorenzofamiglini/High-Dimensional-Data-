@@ -729,13 +729,6 @@ Modello lineare 1: 3.221
 Modello lineare 2: 3.313
 Stepwise regression: 2.734
 
-RISULTATI TEST (R-squared):
-LASSO 1: 0.530
-LASSO 2: 0.493
-LASSO 3: 0.551
-Modello lineare 1: 0.534
-Modello lineare 2: 0.520
-Stepwise regression: 0.501
 
 ```{r}
 final_info
