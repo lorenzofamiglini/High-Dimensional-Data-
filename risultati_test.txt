@@ -1,7 +1,7 @@
 RISULTATI TEST (RMSE):
-LASSO 1: 3.645
-LASSO 2: 3.015
-LASSO 3: 3.006
+LASSO 1, lambda = 0.42: 3.645
+LASSO 2, lambda = 0.75: 3.015
+LASSO 3, lambda = 0.55: 3.006
 Modello lineare 1: 3.332
 Modello lineare 2: 3.221
 Stepwise regression: 3.441

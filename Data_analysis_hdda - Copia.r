@@ -52,7 +52,7 @@ paste("Il coefficiente di variazione e': ", (sd(df$bmi)/mean(df$bmi))*100)
 yplot <- function(x, nbreaks=10) {
                z <- x
 hist(z, breaks=nbreaks, freq=FALSE,
-     xlab="Price_charges",
+     xlab="BMI",
      main="Distribuzione della variabile dipendente", col = "grey")
 rug(jitter(z), col="brown")
 curve(dnorm(x, mean=mean(z), sd=sd(z)),
@@ -68,12 +68,13 @@ yplot(df$bmi)
 yplot(log(df$bmi))
 
 #Analisi per sesso: 
-ggplot(df, aes(x = bmi, fill = as.factor(sex1m2f))) + 
+ggplot(no_out, aes(x = bmi, fill = as.factor(sex1m2f))) + 
  geom_density(size = 0.6, alpha = .3, colour = "black") + 
  geom_rug(aes(x = bmi,y = 0), position = position_jitter(height = 0)) +
  labs(x = "Bmi", y =
 "Densita'", fill = "Sesso") +
- ggtitle("Come si distribuisce bmi rispetto al sesso") 
+scale_fill_manual(label = c("Maschio","Femmina"), values = c("green","lightgrey"))+
+ ggtitle("Distribuzione del bmi rispetto al sesso") 
 
 ```
 
@@ -118,7 +119,10 @@ qqline(log(no_out$bmi), col = "steelblue", lwd = 2)
 shapiro.test(no_out$bmi) #H0: normalità, si accetta l'ipotesi di normalità dopo aver eliminato 7 outliers ()
 shapiro.test(log(no_out$bmi)) #In questo caso il log peggiora 
 ```
-
+ggplot(data = df)+
+  geom_boxplot(aes(y = bmi), fill = "gray")  +
+  theme_update() + 
+  labs(title = "Identificazione outliers mediante boxplot")
 --------------------------------------------
 Continuo analisi esplorativa delle variabili
 --------------------------------------------
@@ -126,13 +130,14 @@ Continuo analisi esplorativa delle variabili
 #Testiamo se esiste una differenza significativa nelle due popolazioni maschili e femminili:
 ```{r}
 wilcox.test(df$bmi~df$sex1m2f,  conf.int = T, paired = F) #non esiste una differenza significativa tra le distribuzioni delle due popolazioni legate al sesso. Si accetta l'ipotesi nulla ad un livello di confidenza del 95%. 
+t.test(no_out$bmi~no_out$sex1m2f)
 ```
-
+aggregate(no_out$bmi, list(no_out$sex1m2f), sd)
 ```{r}
 #Analisi per età:
-df$age <- as.integer(df$age)
-df$age_discr <- quantcut(df$age,3) #quantile discretization in 3 bins
-ggplot(df, aes(x = bmi, fill = age_discr)) + 
+no_out$age <- as.integer(no_out$age)
+no_out$age_discr <- quantcut(no_out$age,3) #quantile discretization in 3 bins
+ggplot(no_out, aes(x = bmi, fill = age_discr)) + 
  geom_density(size = 0.6, alpha = .3, colour = "black") + 
  geom_rug(aes(x = bmi,y = 0), position = position_jitter(height = 0)) +
  labs(x = "Bmi", y =
@@ -141,8 +146,8 @@ ggplot(df, aes(x = bmi, fill = age_discr)) +
 ```
 Chi-squared test tra fasce di età e bmi:
 ```{r}
-df$bmi_discr <- quantcut(df$bmi,3)
-age_bmi <- table(df$bmi_discr, df$age_discr)
+no_out$bmi_discr <- quantcut(no_out$bmi,3)
+age_bmi <- table(no_out$bmi_discr, no_out$age_discr)
 chisq.test(age_bmi)
 #Dal test del chi-quadro emerge che esiste una dipendenza tra le varie fasce di età e il bmi
 ```
@@ -153,17 +158,26 @@ df$bdate <- NULL
 df$zbmius <- NULL
 df$zbmicatus <- NULL
 df$bmicat1norm2ow3ob <- NULL
+no_out$cluster <- as.character(no_out$cluster)
+no_out$cluster[no_out$cluster == "Bacteroides"] = 2
+no_out$cluster[no_out$cluster == "Prevotella"] = 1
+no_out$cluster <- as.numeric(no_out$cluster)
 #Analisi pca nutrienti, var. demografiche, bmi
-var_num <- c("bmi", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut","age","sex1m2f")
-cor(df[,var_num])
+var_num <- c("bmi", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut","age","sex1m2f", "cluster")
+cor(no_out[,var_num])
 plot(no_out[,var_num],cex=.8, col = "tomato")
 
 
-var_num <- c("bmi", "PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa","age","sex1m2f", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut", "weightkg","heightcm")
+var_num <- c("bmi", "PC1_taxa","PC2_taxa","PC3_taxa","PC4_taxa","PC5_taxa","PC6_taxa","age", "PC1_nut","PC2_nut","PC3_nut","PC4_nut","PC5_nut",
+             "sex1m2f")
 library(corrplot)
+png(height=1200, width=1500, pointsize=25,file="immagini/corr_plot.png")
 
-coor <- cor(no_out[,var_num])
-corrplot(coor, method="color", addCoef.col="black", order = "AOE")
+coor <- cor(no_out[,var_num], method = "spearman")
+corr_plot <- corrplot(coor, method="color", addCoef.col="black", order = "AOE", title = "Analisi correlazione di Spearman",
+                      mar=c(1,1,1,1))
+dev.off()
+
 ```
 
 ------------
@@ -559,7 +573,8 @@ dataset <- read.csv("datasets/demo_nutrients_cluster.csv")
 dataset$X <- NULL
 
 lasso_plt <- print_lasso(dataset)
-lasso_plt[[2]]$bestTune
+coef(lasso_plt[[2]]$finalModel)
+print(coef(lasso_plt[[2]]$finalModel,lasso_plt[[2]]$finalModel$lambdaOpt))
 #ggsave("lasso_demo_nutriens_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
 
 get_lasso <- function(lasso_plt, lamb = 0.6, typ = "lasso3"){
@@ -570,14 +585,17 @@ get_lasso <- function(lasso_plt, lamb = 0.6, typ = "lasso3"){
               info_mod <- get_confid_i(model, model_type = typ)
               return(list(info_mod, model))
 }
+
 lass1 <- get_lasso(lasso_plt, lamb = 0.6, typ = "lasso1")
 info_mod4 <- lass1[[1]]
 info_mod4$Rsquaredadj <-lass1[[2]]$results$Rsquared
 final_info <- rbind(final_info, info_mod4)
-
+lass1
 new_df$cluster <- NULL
 str(new_df)
 lasso_plt <- print_lasso(new_df)
+print(coef(lasso_plt[[2]]$finalModel,lasso_plt[[2]]$finalModel$lambdaOpt))
+
 lasso_plt[[4]]
 ggsave("lasso_demo_37taxa_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
 
@@ -590,6 +608,7 @@ final_info <- rbind(final_info, info_mod5)
 new_df2 <- new_df2[,-c(147:151)]
 new_df2 <- new_df2[,-ncol(new_df2)]
 lasso_plt <- print_lasso(new_df2)
+print(coef(lasso_plt[[2]]$finalModel,lasso_plt[[2]]$finalModel$lambdaOpt))
 #ggsave("lasso_demo_37taxa_nutriens_cluster.png", lasso_plt[[1]], height=8.5, width=15.57)
 lasso_plt[[2]]$bestTune
 lass3 <- get_lasso(lasso_plt,lamb = 0.85, typ = "lasso3")
