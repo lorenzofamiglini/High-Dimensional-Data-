@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.4.16)  22 APR 2020 18:07
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.4.16)  22 APR 2020 19:04
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -633,19 +633,10 @@ logo.png (PNG copy)>] (/usr/local/texlive/2018/texmf-dist/tex/latex/ucs/data/un
 i-32.def
 File: uni-32.def 2013/05/13 UCS: Unicode data U+2000..U+20FF
 )
-[1] [2]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 134.
+[1] [2] [3]
 
- (/usr/local/texlive/2018/texmf-dist/tex/latex/base/omscmr.fd
-File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
-)
-LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 134.
+LaTeX Warning: Citation `Lee2015' on page 4 undefined on input line 159.
 
-
-LaTeX Warning: Citation `Lee2015' on page 3 undefined on input line 157.
-
-[3]
 No file ProjectTemplate.bbl.
 [4] (./ProjectTemplate.aux)
 
@@ -653,10 +644,10 @@ LaTeX Warning: There were undefined references.
 
  ) 
 Here is how much of TeX's memory you used:
- 14476 strings out of 492649
- 277225 string characters out of 6129622
+ 14459 strings out of 492649
+ 276923 string characters out of 6129622
  336975 words of memory out of 5000000
- 18059 multiletter control sequences out of 15000+600000
+ 18045 multiletter control sequences out of 15000+600000
  11333 words of font info for 40 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  62i,5n,56p,1763b,594s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -667,12 +658,11 @@ Here is how much of TeX's memory you used:
 /usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></u
 sr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr
 /local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/lo
-cal/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/loc
-al/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb>
-Output written on ProjectTemplate.pdf (5 pages, 136182 bytes).
+cal/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb>
+Output written on ProjectTemplate.pdf (5 pages, 130978 bytes).
 PDF statistics:
- 60 PDF objects out of 1000 (max. 8388607)
- 42 compressed objects within 1 object stream
+ 56 PDF objects out of 1000 (max. 8388607)
+ 39 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  18 words of extra memory for PDF output out of 10000 (max. 10000000)
 
