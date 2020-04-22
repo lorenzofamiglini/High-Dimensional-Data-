@@ -192,6 +192,7 @@ Modellazione
 #Train e test split:
 # Random sample indexes
 set.seed(20)
+
 rownames(no_out) <- c(1:nrow(no_out))
 train_index <- sample(1:nrow(no_out), 0.9 * nrow(no_out))
 test_index <- setdiff(1:nrow(no_out), train_index)
@@ -239,12 +240,32 @@ get_confid_i <- function(model1, model_type = "Mod1"){
   upper_bound <- media + 1.96*stand_error
   get_df <- as.data.frame(cbind(media, lower_bound, upper_bound))
   get_df$type <- model_type
+  get_df$metric <- "RMSE"
   return(get_df)
 }
 
+get_confid_i_rsquared <- function(model1, model_type = "Mod1"){
+  ci_mod1 <- as.data.frame(model1$resample$Rsquared)
+  colnames(ci_mod1)[1] <- "R_squared"
+  #ci_mod1$type <- "Model 1"
+  media <- mean(ci_mod1$R_squared)
+  st_dev <- sd(ci_mod1$R_squared)
+  stand_error <- (1/sqrt(10))*st_dev
+  lower_bound <- media - 1.96*stand_error
+  upper_bound <- media + 1.96*stand_error
+  get_df <- as.data.frame(cbind(media, lower_bound, upper_bound))
+  get_df$type <- model_type
+  get_df$metric <- "R_squared"
+  return(get_df)
+}
 
 info_mod1 <- get_confid_i(model1)
-get_r2(predict(model1,X_test), y_test)
+info_mod1_r2 <- get_confid_i_rsquared(model1,model_type = "Mod1")
+
+#info_mod1_r2 <- get_r2(predict(model1,X_test), y_test)
+
+info_modello1 <- rbind(info_mod1, info_mod1_r2)
+
 Metrics::rmse(predict(model1,X_test), y_test)
 final_info
 ```
@@ -263,9 +284,15 @@ model2 <- train(y_train ~ PC1_nut + PC2_nut + PC3_nut + PC4_nut + PC5_nut + age 
                method = "lm", trControl = train.control)
 
 model2$resample
+
 Metrics::rmse(predict(model2,X_test), y_test)
 get_r2(predict(model2,X_test), y_test)
 info_mod2 <- get_confid_i(model2, model_type = "Mod2")
+info_mod2_r2 <- get_confid_i_rsquared(model2, model_type = "Mod2")
+info_modello2 <- rbind(info_mod2, info_mod2_r2)
+
+info_totali <- rbind(info_modello1, info_modello2)
+info_totali
 ```
 
 
@@ -458,7 +485,7 @@ labs(title="Stepwise Forward regression (CV 10 folds)",
 ```{r}
 #Best model in stepwise cv forward: 
 train.control <- trainControl(method = "cv", repeats = 1, number = 10,savePred=T) #procedura di crossvalidation, number = 9, repeats = 1
-model<- train(y_train ~ sex1m2f + age + Porphyromonadaceae.g__Parabacteroides +
+model<- caret::train(y_train ~ sex1m2f + age + Porphyromonadaceae.g__Parabacteroides +
                 Lachnospiraceae.g__Blautia  + 
                 Lachnospiraceae.g__Lachnobacterium + 
                 Veillonellaceae.g__Megasphaera + 
@@ -470,9 +497,9 @@ model<- train(y_train ~ sex1m2f + age + Porphyromonadaceae.g__Parabacteroides +
 
 
 info_mod3 <- get_confid_i(model, model_type = "Mod3")
-final_info <- rbind(info_mod1,info_mod2, info_mod3)
+info_mod3_r2 <- get_confid_i_rsquared(model, model_type = "Mod3")
+info_totali <- rbind(info_totali, info_mod3, info_mod3_r2)
 
-final_info$Rsquaredadj <- c(0.37, 0.29,0.49)
 ```
 
 
@@ -509,7 +536,7 @@ get_r2(y_test, predictions)
 #Plot hyperplane
 rockchalk::plotPlane(final_model, plotx1 = "sex1m2f", plotx2 = "age",ticktype = "detailed",npp = 10, theta = 30)
 ```
-
+info_totali
 ------
 LASSO
 ------
