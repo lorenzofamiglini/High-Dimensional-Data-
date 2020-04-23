@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.4.16)  23 APR 2020 15:28
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2018.4.16)  23 APR 2020 18:40
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -9,8 +9,8 @@ LaTeX2e <2018-04-01> patch level 2
 Babel <3.18> and hyphenation patterns for 84 language(s) loaded.
 (/usr/local/texlive/2018/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2014/09/29 v1.4h Standard LaTeX document class
-(/usr/local/texlive/2018/texmf-dist/tex/latex/base/size12.clo
-File: size12.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
+(/usr/local/texlive/2018/texmf-dist/tex/latex/base/size11.clo
+File: size11.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
 )
 \c@part=\count80
 \c@section=\count81
@@ -641,23 +641,23 @@ ABD: EveryShipout initializing macros
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
 * bindingoffset: 14.45377pt
 * modes: 
-* h-part:(L,W,R)=(36.135pt, 510.78412pt, 36.135pt)
+* h-part:(L,W,R)=(21.68121pt, 525.2379pt, 36.135pt)
 * v-part:(T,H,B)=(72.26999pt, 700.50687pt, 72.26999pt)
 * \paperwidth=597.50787pt
 * \paperheight=845.04684pt
-* \textwidth=510.78412pt
+* \textwidth=525.2379pt
 * \textheight=700.50687pt
-* \oddsidemargin=-21.68123pt
-* \evensidemargin=-36.135pt
+* \oddsidemargin=-36.13501pt
+* \evensidemargin=-50.58878pt
 * \topmargin=-37.0pt
 * \headheight=12.0pt
 * \headsep=25.0pt
-* \topskip=12.0pt
+* \topskip=11.0pt
 * \footskip=18.06749pt
-* \marginparwidth=44.0pt
+* \marginparwidth=59.0pt
 * \marginparsep=10.0pt
 * \columnsep=10.0pt
-* \skip\footins=10.8pt plus 4.0pt minus 2.0pt
+* \skip\footins=10.0pt plus 4.0pt minus 2.0pt
 * \hoffset=0.0pt
 * \voffset=0.0pt
 * \mag=1000
@@ -687,7 +687,7 @@ File: uni-32.def 2013/05/13 UCS: Unicode data U+2000..U+20FF
 File: images/abbondanza-generi.png Graphic file (type png)
 <use images/abbondanza-generi.png>
 Package pdftex.def Info: images/abbondanza-generi.png  used on input line 124.
-(pdftex.def)             Requested size: 510.78412pt x 252.60254pt.
+(pdftex.def)             Requested size: 525.2379pt x 259.76776pt.
  [2 <./images/abbondanza-generi.png>]
 Underfull \hbox (badness 10000) in paragraph at lines 137--140
 
@@ -698,9 +698,9 @@ File: images/real_correlazione.jpeg Graphic file (type jpg)
 <use images/real_correlazione.jpeg>
 Package pdftex.def Info: images/real_correlazione.jpeg  used on input line 142.
 
-(pdftex.def)             Requested size: 510.78412pt x 737.9309pt.
+(pdftex.def)             Requested size: 525.2379pt x 758.86844pt.
 [3]
-Overfull \vbox (31.42403pt too high) has occurred while \output is active []
+Overfull \vbox (52.86157pt too high) has occurred while \output is active []
 
 
 [4 <./images/real_correlazione.jpeg>]
@@ -713,29 +713,29 @@ Package pdftex.def Info: images/real_tabella.PNG  used on input line 152.
 File: images/silhouette.png Graphic file (type png)
 <use images/silhouette.png>
 Package pdftex.def Info: images/silhouette.png  used on input line 153.
-(pdftex.def)             Requested size: 250.39206pt x 217.0655pt.
-<images/real_clustering.png, id=35, 393.72093pt x 402.00188pt>
+(pdftex.def)             Requested size: 257.61894pt x 223.32837pt.
+<images/real_clustering.png, id=35, 463.7325pt x 402.00188pt>
 File: images/real_clustering.png Graphic file (type png)
 <use images/real_clustering.png>
 Package pdftex.def Info: images/real_clustering.png  used on input line 162.
-(pdftex.def)             Requested size: 255.39206pt x 260.75832pt.
+(pdftex.def)             Requested size: 262.61894pt x 227.66513pt.
  [5 <./images/real_tabella.PNG> <./images/silhouette.png> <./images/real_cluste
 ring.png>]
 <images/real_prevotella.png, id=42, 463.7325pt x 402.00188pt>
 File: images/real_prevotella.png Graphic file (type png)
 <use images/real_prevotella.png>
 Package pdftex.def Info: images/real_prevotella.png  used on input line 172.
-(pdftex.def)             Requested size: 163.5947pt x 141.81915pt.
+(pdftex.def)             Requested size: 168.41263pt x 145.99644pt.
 <images/real_bacteroides.png, id=43, 463.7325pt x 402.00188pt>
 File: images/real_bacteroides.png Graphic file (type png)
 <use images/real_bacteroides.png>
 Package pdftex.def Info: images/real_bacteroides.png  used on input line 173.
-(pdftex.def)             Requested size: 163.5947pt x 141.81915pt.
+(pdftex.def)             Requested size: 168.41263pt x 145.99644pt.
 <images/real_ruminococcus.png, id=44, 463.7325pt x 402.00188pt>
 File: images/real_ruminococcus.png Graphic file (type png)
 <use images/real_ruminococcus.png>
 Package pdftex.def Info: images/real_ruminococcus.png  used on input line 174.
-(pdftex.def)             Requested size: 163.5947pt x 141.81915pt.
+(pdftex.def)             Requested size: 168.41263pt x 145.99644pt.
 
 Underfull \hbox (badness 10000) in paragraph at lines 178--180
 
@@ -745,82 +745,185 @@ Underfull \hbox (badness 10000) in paragraph at lines 178--180
 File: images/real_associazioni.png Graphic file (type png)
 <use images/real_associazioni.png>
 Package pdftex.def Info: images/real_associazioni.png  used on input line 182.
-(pdftex.def)             Requested size: 510.78412pt x 681.0584pt.
+(pdftex.def)             Requested size: 525.2379pt x 700.34427pt.
 [6 <./images/real_prevotella.png> <./images/real_bacteroides.png> <./images/rea
-l_ruminococcus.png>] [7 <./images/real_associazioni.png>] [8]
-Underfull \hbox (badness 10000) in paragraph at lines 215--222
+l_ruminococcus.png>] [7 <./images/real_associazioni.png>]
+<images/stat_BMI.PNG, id=57, 320.69812pt x 35.13126pt>
+File: images/stat_BMI.PNG Graphic file (type png)
+<use images/stat_BMI.PNG>
+Package pdftex.def Info: images/stat_BMI.PNG  used on input line 192.
+(pdftex.def)             Requested size: 284.52756pt x 31.16966pt.
+<images/distribuzione_bmi.png, id=58, 316.18124pt x 310.91156pt>
+File: images/distribuzione_bmi.png Graphic file (type png)
+<use images/distribuzione_bmi.png>
+Package pdftex.def Info: images/distribuzione_bmi.png  used on input line 198.
+(pdftex.def)             Requested size: 284.52756pt x 279.80357pt.
+<images/qqplot_bmi_con_outliers.png, id=59, 316.18124pt x 310.91156pt>
+File: images/qqplot_bmi_con_outliers.png Graphic file (type png)
+<use images/qqplot_bmi_con_outliers.png>
+Package pdftex.def Info: images/qqplot_bmi_con_outliers.png  used on input line
+ 203.
+(pdftex.def)             Requested size: 284.52756pt x 279.80357pt.
+ [8 <./images/stat_BMI.PNG> <./images/distribuzione_bmi.png>]
+<images/box_plot_outliers.png, id=65, 316.18124pt x 310.91156pt>
+File: images/box_plot_outliers.png Graphic file (type png)
+<use images/box_plot_outliers.png>
+Package pdftex.def Info: images/box_plot_outliers.png  used on input line 209.
+(pdftex.def)             Requested size: 284.52756pt x 279.80357pt.
+<images/qqplot_bmi_no_outliers.png, id=66, 316.18124pt x 310.91156pt>
+File: images/qqplot_bmi_no_outliers.png Graphic file (type png)
+<use images/qqplot_bmi_no_outliers.png>
+Package pdftex.def Info: images/qqplot_bmi_no_outliers.png  used on input line 
+215.
+(pdftex.def)             Requested size: 284.52756pt x 279.80357pt.
+ [9 <./images/qqplot_bmi_con_outliers.png> <./images/box_plot_outliers.png>]
+<images/distribuzione_sesso_bmi.png, id=72, 316.18124pt x 310.91156pt>
+File: images/distribuzione_sesso_bmi.png Graphic file (type png)
+<use images/distribuzione_sesso_bmi.png>
+Package pdftex.def Info: images/distribuzione_sesso_bmi.png  used on input line
+ 221.
+(pdftex.def)             Requested size: 284.52756pt x 279.80357pt.
+ [10 <./images/qqplot_bmi_no_outliers.png> <./images/distribuzione_sesso_bmi.pn
+g>]
+File: images/distribuzione_sesso_bmi.png Graphic file (type png)
+<use images/distribuzione_sesso_bmi.png>
+Package pdftex.def Info: images/distribuzione_sesso_bmi.png  used on input line
+ 226.
+(pdftex.def)             Requested size: 284.52756pt x 279.80357pt.
+<images/corr_plot_regressori.png, id=78, 1505.625pt x 1204.5pt>
+File: images/corr_plot_regressori.png Graphic file (type png)
+<use images/corr_plot_regressori.png>
+Package pdftex.def Info: images/corr_plot_regressori.png  used on input line 23
+2.
+(pdftex.def)             Requested size: 455.24408pt x 364.20155pt.
+ [11]
+Underfull \hbox (badness 10000) in paragraph at lines 241--248
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 215--222
+Underfull \hbox (badness 10000) in paragraph at lines 241--248
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 215--222
+Underfull \hbox (badness 10000) in paragraph at lines 241--248
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 224--231
+Underfull \hbox (badness 10000) in paragraph at lines 250--257
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 224--231
+Underfull \hbox (badness 10000) in paragraph at lines 250--257
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 224--231
+Underfull \hbox (badness 10000) in paragraph at lines 250--257
+
+ []
+
+[12 <./images/corr_plot_regressori.png (PNG copy)>]
+<images/ci_stepwise_forward.png, id=87, 1125.2439pt x 614.295pt>
+File: images/ci_stepwise_forward.png Graphic file (type png)
+<use images/ci_stepwise_forward.png>
+Package pdftex.def Info: images/ci_stepwise_forward.png  used on input line 264
+.
+(pdftex.def)             Requested size: 483.69684pt x 264.05733pt.
+<images/ci_stepwise_backward.png, id=88, 1125.2439pt x 614.295pt>
+File: images/ci_stepwise_backward.png Graphic file (type png)
+<use images/ci_stepwise_backward.png>
+Package pdftex.def Info: images/ci_stepwise_backward.png  used on input line 26
+8.
+(pdftex.def)             Requested size: 483.69684pt x 264.05733pt.
+ [13 <./images/ci_stepwise_forward.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 271--277
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 236--256
+Overfull \hbox (8.08109pt too wide) in paragraph at lines 271--277
+\OML/cmm/m/it/10.95 bmi \OT1/cmr/m/n/10.95 = \OML/cmm/m/it/10.95 ^^L[]  \OT1/cm
+r/m/n/10.95 +  \OML/cmm/m/it/10.95 ^^L[]Parabacteroides  \OT1/cmr/m/n/10.95 +  
+\OML/cmm/m/it/10.95 ^^L[]Blautia  \OT1/cmr/m/n/10.95 +  \OML/cmm/m/it/10.95 ^^L
+[]Lachnobacterium  \OT1/cmr/m/n/10.95 +  \OML/cmm/m/it/10.95 ^^L[]Megasphaera  
+\OT1/cmr/m/n/10.95 +  \OML/cmm/m/it/10.95 ^^L[]Phascolarctobacterium  \OT1/cmr/
+m/n/10.95 +
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 271--277
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 236--256
+Underfull \hbox (badness 10000) in paragraph at lines 271--277
 
  []
 
-[9]
-
-LaTeX Warning: Citation `Lee2015' on page 10 undefined on input line 272.
-
-[10]
-No file ProjectTemplate.bbl.
-[11] (./ProjectTemplate.aux)
-
-LaTeX Warning: There were undefined references.
-
- ) 
+<images/lasso_demo_nutriens_cluster.png, id=96, 1125.2439pt x 614.295pt>
+File: images/lasso_demo_nutriens_cluster.png Graphic file (type png)
+<use images/lasso_demo_nutriens_cluster.png>
+Package pdftex.def Info: images/lasso_demo_nutriens_cluster.png  used on input 
+line 284.
+(pdftex.def)             Requested size: 483.69684pt x 264.05733pt.
+[14 <./images/ci_stepwise_backward.png>]
+<images/lasso_demo_37taxa_cluster.png, id=101, 1125.2439pt x 614.295pt>
+File: images/lasso_demo_37taxa_cluster.png Graphic file (type png)
+<use images/lasso_demo_37taxa_cluster.png>
+Package pdftex.def Info: images/lasso_demo_37taxa_cluster.png  used on input li
+ne 293.
+(pdftex.def)             Requested size: 483.69684pt x 264.05733pt.
+ [15 <./images/lasso_demo_nutriens_cluster.png> <./images/lasso_demo_37taxa_clu
+ster.png>]
+<images/lasso_demo_37taxa_nutriens_cluster.png, id=107, 1125.2439pt x 614.295pt
+>
+File: images/lasso_demo_37taxa_nutriens_cluster.png Graphic file (type png)
+<use images/lasso_demo_37taxa_nutriens_cluster.png>
+Package pdftex.def Info: images/lasso_demo_37taxa_nutriens_cluster.png  used on
+ input line 301.
+(pdftex.def)             Requested size: 483.69684pt x 264.05733pt.
+<images/confronto_tutti_i_modelli.png, id=108, 1125.2439pt x 614.295pt>
+File: images/confronto_tutti_i_modelli.png Graphic file (type png)
+<use images/confronto_tutti_i_modelli.png>
+Package pdftex.def Info: images/confronto_tutti_i_modelli.png  used on input li
+ne 308.
+(pdftex.def)             Requested size: 483.69684pt x 264.05733pt.
+ [16 <./images/lasso_demo_37taxa_nutriens_cluster.png> <./images/confronto_tutt
+i_i_modelli.png>]
+<images/tabella_modelli.PNG, id=114, 330.23375pt x 243.40938pt>
+File: images/tabella_modelli.PNG Graphic file (type png)
+<use images/tabella_modelli.PNG>
+Package pdftex.def Info: images/tabella_modelli.PNG  used on input line 315.
+(pdftex.def)             Requested size: 284.52756pt x 209.7291pt.
+ [17 <./images/tabella_modelli.PNG>] [18] (./ProjectTemplate.aux) ) 
 Here is how much of TeX's memory you used:
- 14624 strings out of 492649
- 279961 string characters out of 6129622
- 341636 words of memory out of 5000000
- 18195 multiletter control sequences out of 15000+600000
- 11333 words of font info for 40 fonts, out of 8000000 for 9000
+ 14694 strings out of 492649
+ 282365 string characters out of 6129622
+ 341650 words of memory out of 5000000
+ 18253 multiletter control sequences out of 15000+600000
+ 10728 words of font info for 38 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 62i,8n,56p,1763b,594s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
-></usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
-</usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb>
-</usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb><
-/usr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></u
-sr/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr
-/local/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/l
-ocal/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/loca
-l/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local
-/texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/t
-exlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb>
-Output written on ProjectTemplate.pdf (12 pages, 847697 bytes).
+ 62i,8n,56p,1757b,594s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/
+texlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/t
+exlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/te
+xlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></usr/local/te
+xlive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/tex
+live/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texli
+ve/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive
+/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2
+018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2018
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2018/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2018/te
+xmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb>
+Output written on ProjectTemplate.pdf (19 pages, 1535702 bytes).
 PDF statistics:
- 109 PDF objects out of 1000 (max. 8388607)
- 65 compressed objects within 1 object stream
+ 159 PDF objects out of 1000 (max. 8388607)
+ 81 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 63 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 133 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -31,14 +31,14 @@
 %	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
 %----------------------------------------------------------------------------------------
 
-\documentclass[12pt]{article}
+\documentclass[11pt]{article}
 \usepackage[english]{babel}
 \usepackage[utf8x]{inputenc}
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage[a4paper,bindingoffset=0.2in,%
-            left=0.5in,right=0.5in,top=1in,bottom=1in,%
+            left=0.3in,right=0.5in,top=1in,bottom=1in,%
             footskip=.25in]{geometry}
             \usepackage{multicol}
 \newenvironment{Figure}
@@ -102,7 +102,7 @@ Lorenzo Famiglini - MTS4128991- l.famiglini@campus.unimib.it   \\[1cm] % Your na
 
 
 \begin{abstract}
-The ABSTRACT is not a part of the body of the report itself. Rather, the abstract is a brief summary of the report contents that is often separately circulated so potential readers can decide whether to read the report. The abstract should very concisely summarize the whole report: why it was written, what was discovered or developed, and what is claimed to be the significance of the effort. The abstract does not include figures or tables, and only the most significant numerical values or results should be given.
+In questo paper sono riportati i risultati di un lavoro che ha avuto come obiettivo quello di replicare lo studio riportato dal paper \cite{paper}. Lo scopo è quello di verificare l'associazione tra nutrienti e microbioma ed infine fornire un modello che preveda il BMI in funzione di batteri del microbioma, nutrienti e fattori demografici. L'associazione tra nutrienti e batteri è risultata forte mentre si è verificato che il BMI è fortemente influenzato dalla diversa composizione batterica oltre che dall'età e dal sesso di una persona. 
 \end{abstract}
 
 \section{Introduction}
@@ -113,7 +113,7 @@ Oltre ad analizzare l’associazione dieta-enterotipo si sono anche studiati dei
 I dataset a disposizione per le analisi sono forniti dal portale QIITA (study ID 1011) e sono rappresentati da una tabella OTU, una tavola tassonomica e un questionario FFQ relativo ai nutrienti assunti dai soggetti nella dieta a lungo termine. La tabella OTU, di dimensioni 3393 x 100, contiene il numero di sequenze che sono state osservate per ognuno dei 3393 batteri presenti nel microbioma di ciascuno dei 100 pazienti. Ognuno dei batteri può essere presente o assente nel microbioma di ogni paziente e la combinazione di questi valori determina il microbioma vero e proprio di ciascun paziente. La tavola tassonomica permette di collegare gli identificativi dei batteri presenti nella tabella OTU alle loro tassonomie; in questa tavola sono indicati per ognuno dei 3393 batteri i sette livelli tassonomici regno, phylum, classe, ordine, famiglia, genere e specie. Infine il questionario dei nutrienti contiene, per 98 soggetti, le quantità di ciascuno dei nutrienti assunti in una dieta di lungo periodo. In aggiunta a questi tre dataset vi è una quarta tabella contenente gli id dei 100 soggetti in studio e una serie di variabili, come ad esempio il genere, l’altezza, il peso, l’età e il Body Mass Index (BMI) a loro associate. Le informazioni estratte da questo ultimo dataset, combinate con le variabili estratte nella fase di preprocessing, saranno utilizzate per scopi di analisi predittiva del BMI.
 
 \subsection{Preprocessing}
-Si è effettuata una prima pulizia della tavola tassonomica rimuovendo caratteri speciali dai nomi delle tassonomie e si sono analizzate quindi la tavola e le osservazioni per ciascuna colonna indicante il livello tassonomico. Poiché lo studio [referenza paper] è improntato all’analisi dei batteri a livello di genere, ci si concentra sull’analisi delle variabili indicanti i nomi delle tassonomie fino al sesto livello, ignorando la specie dei batteri osservati. La tavola tassonomica presenta un totale di 1526 batteri con genere non identificato e dunque ai fini della analisi si considerano per questi batteri i soli livelli precedenti presenti; ad esempio per un batterio che ha classificazione fino al quarto livello (“ordine”) si considerano unicamente le prime quattro tassonomie eliminando quindi i valori mancanti per i successivi livelli. A questo punto vengono raggruppati tra loro i batteri nella tabella OTU che hanno la stessa classificazione fino all’ultimo livello presente; si ottengono quindi cinque dataset, ognuno per ogni livello tassonomico da phylum a genere, contenenti le possibili aggregazioni osservate per il relativo livello. Per ognuna di queste cinque tabelle sono calcolate le abbondanze relative dei batteri, ovvero la presenza in termini percentuali di ciascun batterio in ognuno dei 100 individui considerati. Aggregando queste cinque tabelle si ottengono 198 possibili livelli di aggregazione dei batteri osservati. Sono state considerate, in seguito, solamente le tassonomie presenti in almeno il 10\% dei soggetti che avessero un valore di abbondanza relativa maggiore o uguale allo 0.2\% in almeno uno dei soggetti. In questo modo sono state ottenute 76 tassonomie.
+Si è effettuata una prima pulizia della tavola tassonomica rimuovendo caratteri speciali dai nomi delle tassonomie e si sono analizzate quindi la tavola e le osservazioni per ciascuna colonna indicante il livello tassonomico. Poiché lo studio\cite{paper} è improntato all’analisi dei batteri a livello di genere, ci si concentra sull’analisi delle variabili indicanti i nomi delle tassonomie fino al sesto livello, ignorando la specie dei batteri osservati. La tavola tassonomica presenta un totale di 1526 batteri con genere non identificato e dunque ai fini della analisi si considerano per questi batteri i soli livelli precedenti presenti; ad esempio per un batterio che ha classificazione fino al quarto livello (“ordine”) si considerano unicamente le prime quattro tassonomie eliminando quindi i valori mancanti per i successivi livelli. A questo punto vengono raggruppati tra loro i batteri nella tabella OTU che hanno la stessa classificazione fino all’ultimo livello presente; si ottengono quindi cinque dataset, ognuno per ogni livello tassonomico da phylum a genere, contenenti le possibili aggregazioni osservate per il relativo livello. Per ognuna di queste cinque tabelle sono calcolate le abbondanze relative dei batteri, ovvero la presenza in termini percentuali di ciascun batterio in ognuno dei 100 individui considerati. Aggregando queste cinque tabelle si ottengono 198 possibili livelli di aggregazione dei batteri osservati. Sono state considerate, in seguito, solamente le tassonomie presenti in almeno il 10\% dei soggetti che avessero un valore di abbondanza relativa maggiore o uguale allo 0.2\% in almeno uno dei soggetti. In questo modo sono state ottenute 76 tassonomie.
 Inoltre, per scopi successivi nelle analisi, si decide di creare una tabella OTU contenente i batteri aggregati al solo livello di genere o superiore ove mancante (famiglia, genere, classe, …), ottenendo così 119 tassonomie differenti. 
 Si mostrano le abbondanze nei 97 pazienti dei generi di batteri osservati:
 
@@ -126,10 +126,10 @@ Si mostrano le abbondanze nei 97 pazienti dei generi di batteri osservati:
  \vspace*{1cm}  
 
 Per quanto riguarda il dataset dei nutrienti, di dimensione 98 x 215, sono state selezionate soltanto le 97 righe con identificativo del soggetto nello studio presente anche nella tabella OTU citata in precedenza. 
-Per valutare quali nutrienti fossero maggiormente significativi a livello di impatto sulla composizione del  intestinale, è stata considerato l’intero insieme dei 3393 diversi batteri non aggregati per livello tassonomico come indicatore di variabilità della composizione del microbioma stesso. Sulle abbondanze della tabella OTU originaria sono state dunque calcolate le distanze tra i microbiomi intestinali dei 97 soggetti con la metrica Unifrac non pesata, individuata come metodo maggiormente discriminante per le differenze di composizione dei microbiomi rispetto alla stessa metrica Unifrac pesata, che tiene quindi in considerazione la quantità di ciascun batterio nel microbioma, piuttosto che la semplice presenza/assenza come nel caso della metrica non pesata. Il calcolo della distanza utilizzando la Unifrac non pesata avviene tramite la formula: 
+Per valutare quali nutrienti fossero maggiormente significativi a livello di impatto sulla composizione del  intestinale, è stata considerato l’intero insieme dei 3393 diversi batteri non aggregati per livello tassonomico come indicatore di variabilità della composizione del microbioma stesso. Sulle abbondanze della tabella OTU originaria sono state dunque calcolate le distanze tra i microbiomi intestinali dei 97 soggetti con la metrica Unifrac \cite{unifrac} non pesata, individuata come metodo maggiormente discriminante per le differenze di composizione dei microbiomi rispetto alla stessa metrica Unifrac pesata, che tiene quindi in considerazione la quantità di ciascun batterio nel microbioma, piuttosto che la semplice presenza/assenza come nel caso della metrica non pesata. Il calcolo della distanza utilizzando la Unifrac non pesata avviene tramite la formula: 
 $$\frac{sum\: of \:unshared \:branch\: lengths}{sum\: of\: all\: tree\: branch\: lengths} = fraction\: of\: total \:unshared \:branch \:lengths$$
 
-Una volta calcolata la matrice delle distanze non pesate Unifrac sui 97 microbiomi intestinali, è stato possibile effettuare la PERMANOVA su ciascuno dei nutrienti standardizzati della tabella. A differenza della ANOVA, che si basa sull’ipotesi di normalità, la PERMANOVA traccia test di significatività confrontando il risultato del test F reale con quello ottenuto dalle permutazioni casuali degli oggetti tra i gruppi senza fare alcuna assunzione sulla distribuzione dei dati; inoltre, mentre l'ANOVA verifica la somiglianza delle medie tra i gruppi basandosi sui dati, la PERMANOVA utilizza in input una matrice di distanze. Ognuno dei nutrienti è stato valutato significativo se il valore di False Discovery Rate FDR (percentuale di volte in cui si rifiuta l’ipotesi nulla quando invece è vera) è minore del 25\%. Come descritto in ***ref***, questa soglia relativamente alta è stata utilizzata per non escludere dall’analisi nutrienti associati a batteri con valori di abbondanza relativa non particolarmente alti.
+Una volta calcolata la matrice delle distanze non pesate Unifrac sui 97 microbiomi intestinali, è stato possibile effettuare la PERMANOVA\cite{permanova} su ciascuno dei nutrienti standardizzati della tabella. A differenza della ANOVA, che si basa sull’ipotesi di normalità, la PERMANOVA traccia test di significatività confrontando il risultato del test F reale con quello ottenuto dalle permutazioni casuali degli oggetti tra i gruppi senza fare alcuna assunzione sulla distribuzione dei dati; inoltre, mentre l'ANOVA verifica la somiglianza delle medie tra i gruppi basandosi sui dati, la PERMANOVA utilizza in input una matrice di distanze. Ognuno dei nutrienti è stato valutato significativo se il valore di False Discovery Rate FDR (percentuale di volte in cui si rifiuta l’ipotesi nulla quando invece è vera) è minore del 25\%. Come descritto in ***ref***, questa soglia relativamente alta è stata utilizzata per non escludere dall’analisi nutrienti associati a batteri con valori di abbondanza relativa non particolarmente alti.
 I batteri e i nutrienti selezionati sono stati utilizzati per costruire due dataset con lo scopo di effettuare l’analisi predittiva del BMI. Dai nutrienti selezionati sono state estratte le prime 5 componenti principali per un totale di varianza catturata del 70\%. Nel primo dataset sono state inserite le 119 tassonomie rilevanti e le loro relative componenti principali con un 80\% di varianza catturata. Nel secondo dataset sono state inserite solamente le 37 tassonomie a livello di genere, senza considerare potenziali livelli superiori. I dataset utilizzati per l’analisi predittiva sono stati suddivisi in training e test: la parte dedicata all’addestramento dei modelli è risultata essere il 90\%, lasciando il 10\% dei dati per la validazione dei modelli.
 
 
@@ -142,14 +142,14 @@ Dalla heatmap delle correlazioni è evidente come le proteine come arginina, ala
     \includegraphics[width=\linewidth,keepaspectratio]{images/real_correlazione.jpeg}
   \end{Figure}
 
-Successivamente si è utilizzata la aggregazione dei batteri nelle 119 tassonomie a livello di genere per effettuare un raggruppamento delle composizioni dei microbiomi in clusters. Come suggerito da [referenza paper], si è effettuato un clustering PAM (Partitioning Around Medoid).
-Sono state provate tre differenti metriche di distanza, ovvero la distanza euclidea, la dissimilarità di Bray-Curtis, fortemente utilizzata in ambito biologico e infine la Jensen-Shannon divergence JSD. In tutti e tre i casi il numero ottimale di cluster da considerare è stato 2, a cui sono associati i coefficienti di Silhouette maggiori. 
+Successivamente si è utilizzata la aggregazione dei batteri nelle 119 tassonomie a livello di genere per effettuare un raggruppamento delle composizioni dei microbiomi in clusters. Come suggerito da \cite{paper}, si è effettuato un clustering PAM (Partitioning Around Medoid).
+Sono state provate tre differenti metriche di distanza, ovvero la distanza euclidea, la dissimilarità di Bray-Curtis, fortemente utilizzata in ambito biologico e infine la Jensen-Shannon divergence JSD \cite{jsd}. In tutti e tre i casi il numero ottimale di cluster da considerare è stato 2, a cui sono associati i coefficienti di Silhouette maggiori. 
 
 \begin{Figure}
 \begin{multicols}{2}
     \centering
          \vspace*{1.7cm}
-     \includegraphics[width=\linewidth,keepaspectratio, scale=0.3]{images/real_tabella.PNG}
+     \includegraphics[width=8cm,keepaspectratio, scale=0.3]{images/real_tabella.PNG}
     \includegraphics[width=\linewidth,keepaspectratio]{images/silhouette.png}
      \end{multicols}
   \end{Figure}
@@ -186,25 +186,51 @@ In generale si osserva in maniera netta un'associazione forte dell’enterotipo 
 
 \section{Analisi del bmi e dei regressori}
 La seconda parte dello studio, si pone come obiettivo quello di sviluppare modelli capaci di prevedere la variabile y BMI, in funzione di diversi regressori. Verranno utilizzate tecniche di riduzione della dimensionalità in modo tale da poter sviluppare sia modelli lineari multivariati, sia modelli che si basano sulla procedura di Stepwise e l’uso di stimatori Lasso per poter effettuare feature selection nella fase di training. Prima di entrare nel dettaglio di tali modelli, è stata analizzata la variabile dipendente. Nella tabella successiva vengono mostrati i parametri della distribuzione del BMI:
-**immagine** 
+\vspace*{1cm}
+\begin{Figure}
+    \centering
+    \includegraphics[width=10cm,keepaspectratio]{images/stat_BMI.PNG}
+  \end{Figure}
+  \vspace*{1cm}
 Dai risultati emerge che la media è maggiore della mediana, e questo testimonia un’asimmetria positiva nella distribuzione, concetto confermato anche dal valore della skewness pari a 1.39. Nella figura successiva viene rappresentata la distribuzione empirica della y a confronto con la normale. 
-**immagine**
+\begin{Figure}
+    \centering
+    \includegraphics[width=10cm,keepaspectratio]{images/distribuzione_bmi.png}
+  \end{Figure}
 Dal grafico emerge che il BMI presenta, nella sua distribuzione, un’asimmetria dovuta possibilmente a degli outlier. Per effettuare un'ulteriore analisi si mostra il grafico qqplot della variabile d'interesse e viene applicato il test non parametrico Shapiro-Wilk utile per verificare la normalità della distribuzione: 
-**immagine**
+\begin{Figure}
+    \centering
+    \includegraphics[width=10cm,keepaspectratio]{images/qqplot_bmi_con_outliers.png}
+  \end{Figure}
 Il grafico superiore assume una forma più asimmetrica che normale, a testimonianza che la coda di destra influenza la distribuzione empirica. Applicando il test Shapiro-Wilk si ottiene una statistica W pari a 0.88 e viene rigettata l’ipotesi nulla di normalità con alfa pari a 0.05. Per porre rimedio a tale problema, si fa uno studio degli outlier nella y. Esistono diverse tecniche per identificare i valori anomali, tra cui il box plot:
 
-**boxplot**
+\begin{Figure}
+    \centering
+    \includegraphics[width=10cm,keepaspectratio]{images/box_plot_outliers.png}
+  \end{Figure}
 
 Osservando semplicemente il boxplot si può concludere che esistono degli outlier che influenzano la distribuzione. 6 outlier sono in seguito stati rimossi. Dal grafico seguente si può osservare come tale approccio abbia corretto il problema delle code pesate:
-**normal qqplot**
+\begin{Figure}
+    \centering
+    \includegraphics[width=10cm,keepaspectratio]{images/qqplot_bmi_no_outliers.png}
+  \end{Figure}
 Per confermare l'efficacia della rimozione degli outlier, abbiamo applicato di nuovo il test non parametrico SW, accettando l’ipotesi nulla di normalità con alfa pari a 0.05 e statistica W pari a 0.99. Inoltre, l’ipotesi di normalità degli errori è verificata.
 Successivamente, è stata analizzata la distribuzione della y rispetto all’età ed il sesso in modo tale da identificare eventuali sottopopolazioni nei dati. Una volta verificata l’assunzione di normalità rispetto alla y e di varianza costante nei gruppi, abbiamo applicato il t-test a due campioni per verificare se la distribuzione della popolazione maschile differisse in modo significativo da quella femminile: il test accetta l’ipotesi nulla di uguaglianza, in media, tra le due popolazioni per alfa pari a 0.05. Mostriamo il grafico della distribuzione della y rispetto al sesso: 
-**immagine bmi rispetto al sesso**
+\begin{Figure}
+    \centering
+    \includegraphics[width=10cm,keepaspectratio]{images/distribuzione_sesso_bmi.png}
+  \end{Figure}
 Un’altra variabile interessante è quella legata all’età dei pazienti. Dopo aver discretizzato l’età in 2 intervalli basati sui quantili della distribuzione, si è applicato il test Chi-quadro per verificare un'eventuale dipendenza tra le varie fasce di età e il BMI. I risultati ottenuti evidenziano che non esiste una stretta dipendenza tra l’età e la variabile y, e per questo si accetta l’ipotesi nulla di indipendenza con alfa pari a 0.05.
-**immagine**
+\begin{Figure}
+    \centering
+    \includegraphics[width=10cm,keepaspectratio]{images/distribuzione_sesso_bmi.png}
+  \end{Figure}
 
 Dal grafico superiore, si nota come la fascia di età degli adulti tenda ad avere un BMI più alto rispetto ai giovani. Nella figura successiva, sono mostrate le correlazioni di Spearman tra BMI e le componenti principali dei batteri, dei nutrienti e sesso ed età. 
-**immagine**
+\begin{Figure}
+    \centering
+    \includegraphics[width=16cm,keepaspectratio]{images/corr_plot_regressori.png}
+  \end{Figure}
 
 Si indagano le collinearità tra i regressori. Dal grafico delle correlazioni e dagli indicatori VIF e TOL si evince l'assenza di multicollinearità.
 
@@ -233,45 +259,72 @@ Poichè il numero di regressori p è maggiore del numero di osservazioni n, si d
 $$RMSE_{meancv} \pm 1.96\times ((1/\sqrt{k})sd(Err^{-1}, ... , Err^{-k}))$$
 
 
-**immagine 1**
-**immagine 2**
-\\
+\begin{Figure}
+    \centering
+    \includegraphics[width=17cm,keepaspectratio]{images/ci_stepwise_forward.png}
+  \end{Figure}
+\begin{Figure}
+    \centering
+    \includegraphics[width=17cm,keepaspectratio]{images/ci_stepwise_backward.png}
+  \end{Figure}
+
 Da come si evince dalle due figure, la procedura stepwise forward produce dei risultati migliori rispetto alla backward. Infatti, riesce  a produrre un modello con valori migliori di R-squared e minor numeri di regressori. Tuttavia, osservando gli intervalli di confidenza per modelli con un numero di regressori inferiore (fino a 10), non vi è una differenza significativa. Pertanto, è stato scelto il modello con 9 regressori generato dalla procedura stepwise forward. Segue l'equazione del modello. 
 \\
 \\
 $bmi = \beta_0 \:+\: \beta_1 Parabacteroides\: +\: \beta_2 Blautia \:+\: \beta_3 Lachnobacterium\: +\: \beta_4 Megasphaera \: +\: \beta_5 Phascolarctobacterium \: +\: \beta_6 Veilonella\: +\: \beta_7 Catenibacterium \:+\: \beta_8 age\:+\: \beta_9 sex\: +\: \epsilon$
 \\
 \\
-**immagine 1**
-**immagine 2**
-**immagine 3**
-**immagine 4**
-**immagine 5**
-**immagine 6**
-**immagine 7**
-**immagine 8**
-**immagine 9**
+\subsection{Modello lasso 1}
+Per quanto riguarda il modello 1, i regressori usati sono i seguenti: tutti i nutrienti assunti dalle persone, sesso, età e cluster dell’enterotipo. Tra tutti questi, quelli risultati significativi per spiegare il BMI sono i seguenti: vitamina k1 , acido stearico, idrossiprolina, flavonoidi, pelargonidina antocianidina, sesso ed età. Tra tutti questi il regressore risultato più significativo e con coefficiente maggiore tra gli altri è proprio l’età: segno che essa influenzi molto il BMI.
+Nella seguente immagine si può osservare l’andamento del RMSE con relativo intervallo di confidenza al 95\% di significatività ed $R^2$ adjusted al variare dell’iperparametro Lambda.
+Il valore scelto è 0.81 dato che esso massimizza l’$R^2$ adjusted e minimizza l’RMSE sebbene esso non sia significativamente migliore di tutti gli altri lambda. 
+
+\begin{Figure}
+    \centering
+    \includegraphics[width=17cm,keepaspectratio]{images/lasso_demo_nutriens_cluster.png}
+  \end{Figure}
+\subsection{Modello lasso 2}
+Per il modello 2, i regressori usati sono i seguenti: batteri, sesso, età e cluster dell’enterotipo delle persone. Tra tutti questi, quelli risultati significativi per spiegare il BMI sono i seguenti: Megasphaera, sesso ed età.
+Nella seguente immagine si può osservare l’andamento del RMSE con relativo intervallo di confidenza al 95\% di significatività ed $R^2$ adjusted al variare dell’iperparametro Lambda.
+Il valore scelto è 0.70 dato che esso massimizza l’$R^2$ adjusted e minimizza l’RMSE sebbene esso non sia significativamente migliore di tutti gli altri lambda. 
+
+\begin{Figure}
+    \centering
+    \includegraphics[width=17cm,keepaspectratio]{images/lasso_demo_37taxa_cluster.png}
+  \end{Figure}
+\subsection{Modello lasso 3}
+Per il modello 3, sono stati usati tutti i regressori a disposizione.
+Tra tutti questi, quelli risultati significativi per spiegare il BMI sono i seguenti: età, sesso e Megasphaera. Il valore di lambda scelto è 0.725 dato che esso massimizza l’$R^2$ adjusted e minimizza l’RMSE. 
+
+\begin{Figure}
+    \centering
+    \includegraphics[width=17cm,keepaspectratio]{images/lasso_demo_37taxa_nutriens_cluster.png}
+  \end{Figure}
 Risultati dei modelli: 
 Una volta identificati i diversi modelli, sono stati analizzati i risultati ottenuti mediante la cross-validation: 
 
-**immagine 10**
+\begin{Figure}
+    \centering
+    \includegraphics[width=17cm,keepaspectratio]{images/confronto_tutti_i_modelli.png}
+  \end{Figure}
 
-Nella figura superiore, si confrontano i modelli di regressione con stima OLS con quelli Lasso opportunamente calcolati con i migliori iper-parametri: il numero di regressori nel modello lineare e lambda per i modelli lasso.  Successivamente, per poter confrontare i modelli si è applicata la stessa procedura di training: cross validation con 10 fold. Questo ci ha permesso di generare degli intervalli di confidenza, sempre sulla base della formula **referenza**, e di identificare il modello migliore. **Dal grafico è emerso che non esiste una differenza significativa tra i vari modelli, in termini di RMSE, tranne per il modello stepwise  e lasso 2 rispetto al lasso 1**cambiera. Inoltre, il modello che riesce a catturare più varianza, è sempre quello selezionato dalla procedura forward. Una volta stimati i modelli, sono state effettuate le previsioni sul test set. 
-
-**tabella **
+Nella figura superiore, si confrontano i modelli di regressione con stima OLS con quelli Lasso opportunamente calcolati con i migliori iper-parametri: il numero di regressori nel modello lineare e lambda per i modelli lasso.  Successivamente, per poter confrontare i modelli si è applicata la stessa procedura di training: cross validation con 10 fold. Questo ci ha permesso di generare degli intervalli di confidenza, sempre sulla base della formula **referenza**, e di identificare il modello migliore. Dal grafico è emerso che non esiste una differenza significativa tra i vari modelli, in termini di RMSE, tranne per il modello stepwise  e lasso 2 rispetto al lasso 1**cambiera. Inoltre, il modello che riesce a catturare più varianza, è sempre quello selezionato dalla procedura forward. Una volta stimati i modelli, sono state effettuate le previsioni sul test set. 
+  \vspace*{1cm}
+\begin{Figure}
+    \centering
+    \includegraphics[width=10cm,keepaspectratio]{images/tabella_modelli.PNG}
+  \end{Figure}
+  \vspace*{1cm}
 Dalla tabella, emerge che il modello stepwise sembrerebbe quello più affidabile in termini di risultati tra la cross validation e il test set, anche se esso è composto da sole 10 osservazioni, e quindi questo può influenzare i risultati in termini di $R^2$. Infatti, nei restanti modelli, rispetto alla Cross-validation, il coefficiente di determinazione raggiunge valori superiori, facendo emergere una presenza di underfitting nei modelli. Questo significa che tali modelli risultano essere più flessibili rispetto al test set ma più rigidi nel training set. Per questo principio sceglieremo il modello stepwise, essendo quello più parsimonioso in termini di trade off di varianza e distorsione sia per il training set sia per il test set. Questa valutazione è stata fatta rispetto al valore puntuale stimato, sarebbe interessante stimarsi anche l’intervallo di confidenza del coefficiente di determinazione, in modo tale da poter osservare la stima intervallare. Ovviamente, avendo dei valori del R-squared inferiori a 0.6, tutti i modelli non riescono a prevedere, in modo accurato, il BMI. Questo è anche dovuto dal fatto che tra i regressori e la variabile risposta, non esistono forti dipendenze tale per cui si riesce a spiegare bene l’indice di massa corporea. 
 
-\section{Discussion}
-The discussion section aims at interpreting the results in light of the project's objectives. The most important goal of this section is to interpret the results so that the reader is informed of the insight or answers that the results provide. This section should also present an evaluation of the particular approach taken by the group. For example: Based on the results, how could the experimental procedure be improved? What additional, future work may be warranted? What recommendations can be drawn?
+\section{Conclusioni}
+Dall'analisi è emersa una forte associazione tra dieta ed enterotipo, caratterizzato dalla presenza/assenza dei batteri Bacteroides e Prevotella entrambi appartenenti al phylum Bacteroidetes. L'enterotipo con maggiore presenza di Prevotella risulta fortemente associato con diete ricche di fibre e carboidrati mentre la presenza di Bacteroides è associata con diete ricche di proteine e grassi animali. Poichè il BMI è calcolato tramite peso ed altezza è interessante valutare se le associazioni con i nutrienti ed i batteri lo influenzano. I modelli stimati evidenziano che l'età è un fattore molto influente per il BMI mentre l'enterotipo non lo è. I batteri significativi per spiegare il BMI sono Catenibacterium, Megasphaera, Parabacteroides, Blautia, Lachnobacterium, Phascolarctobacterium, Veillonella, Catenibacterium . Tra questi solo Parabacteroides appartiene al phylum Bacteroidetes mentre gli altri sono del phylum Firmicutes. I batteri del phylum, ad eccezione di Lacnobacteria, influenzano positivamente il BMI mentre  Parabacteroides negativamente. In conclusione, dal nostro studio si evince che i firmicutes sono i batteri che più influenzano la crescita del BMI.
 
-\section{Conclusions}
-Conclusions should summarize the central points made in the Discussion section, reinforcing for the reader the value and implications of the work. If the results were not definitive, specific future work that may be needed can be (briefly) described. The conclusions should never contain ``surprises''. Therefore, any conclusions should be based on observations and data already discussed. It is considered extremely bad form to introduce new data in the conclusions.
 
-\section*{References}
-
-The references section should contain complete citations following standard form.  The references should be numbered and listed in the order they were cited in the body of the report. In the text of the report, a particular reference can be cited by using a numerical number in brackets as \cite{Lee2015} that corresponds to its number in the reference list. \LaTeX provides several styles to format the references
-
-\bibliographystyle{IEEEtran}
-\bibliography{references.bib}
-
+\begin{thebibliography}{9}
+\bibitem{paper} Wu, Gary D., et al. "Linking long-term dietary patterns with gut microbial enterotypes." Science 334.6052 (2011): 105-108.
+\bibitem{permanova} McArdle, Brian H., and Marti J. Anderson. "Fitting multivariate models to community data: a comment on distance based redundancy analysis." Ecology 82.1 (2001): 290 297.
+\bibitem{unifrac} Lozupone, Catherine, et al. "UniFrac: an effective distance metric for microbial community comparison." The ISME journal 5.2 (2011): 169 172.
+\bibitem{jsd} https://bit.ly/2zs5YFv
+\end{thebibliography}
 \end{document}
