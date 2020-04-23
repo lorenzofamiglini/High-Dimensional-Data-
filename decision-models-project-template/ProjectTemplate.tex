@@ -118,7 +118,12 @@ Inoltre, per scopi successivi nelle analisi, si decide di creare una tabella OTU
 Si mostrano le abbondanze nei 97 pazienti dei generi di batteri osservati:
 
 
-figura  
+\vspace*{1cm}
+\begin{Figure}
+    \centering
+    \includegraphics[width=\linewidth,keepaspectratio]{images/abbondanza-generi.png}
+  \end{Figure}
+ \vspace*{1cm}  
 
 Per quanto riguarda il dataset dei nutrienti, di dimensione 98 x 215, sono state selezionate soltanto le 97 righe con identificativo del soggetto nello studio presente anche nella tabella OTU citata in precedenza. 
 Per valutare quali nutrienti fossero maggiormente significativi a livello di impatto sulla composizione del  intestinale, è stata considerato l’intero insieme dei 3393 diversi batteri non aggregati per livello tassonomico come indicatore di variabilità della composizione del microbioma stesso. Sulle abbondanze della tabella OTU originaria sono state dunque calcolate le distanze tra i microbiomi intestinali dei 97 soggetti con la metrica Unifrac non pesata, individuata come metodo maggiormente discriminante per le differenze di composizione dei microbiomi rispetto alla stessa metrica Unifrac pesata, che tiene quindi in considerazione la quantità di ciascun batterio nel microbioma, piuttosto che la semplice presenza/assenza come nel caso della metrica non pesata. Il calcolo della distanza utilizzando la Unifrac non pesata avviene tramite la formula: 
@@ -131,25 +136,35 @@ I batteri e i nutrienti selezionati sono stati utilizzati per costruire due data
 \section{Analisi descrittiva}
 Nella heatmap seguente si mostrano le correlazioni di Spearman ottenute tra i generi estratti dalle 76 tassonomie rilevanti e i nutrienti selezionati con la PERMANOVA. 
 Dalla heatmap delle correlazioni è evidente come le proteine come arginina, alanina, glicina e leucina siano correlate positivamente con il genere Bacteroides, mentre risulta debole e negativa la correlazione di tali nutrienti con i due generi Prevotella osservati nei microbiomi dei soggetti in studio. D’altra parte Prevotella mostra un'alta correlazione positiva con nutrienti ricchi di zuccheri, come saccarosio, fruttosio, carboidrati e indice glicemico; la quantità relativa di Bacteroides nel microbioma intestinale risulta invece poco correlata con i carboidrati. Per quanto riguarda le fibre e per i composti di origine vegetale invece non si mostra forte correlazione per nessuno dei due generi presi in esame. Il terzo genere preso in considerazione in studi precedenti [link a studi precedenti], Ruminococcus, risulta invece correlato positivamente con questa ultima categoria di nutrienti. Tuttavia, la sua correlazione risulta debole e negativa sia per quanto riguarda i nutrienti riconducibili ai carboidrati, sia per gli amminoacidi.
-\vspace*{1cm}
+\\
 \begin{Figure}
     \centering
-    \includegraphics[width=\linewidth,keepaspectratio]{images/abbondanza-generi.png}
+    \includegraphics[width=\linewidth,keepaspectratio]{images/real_correlazione.jpeg}
   \end{Figure}
- \vspace*{1cm}
 
 Successivamente si è utilizzata la aggregazione dei batteri nelle 119 tassonomie a livello di genere per effettuare un raggruppamento delle composizioni dei microbiomi in clusters. Come suggerito da [referenza paper], si è effettuato un clustering PAM (Partitioning Around Medoid).
 Sono state provate tre differenti metriche di distanza, ovvero la distanza euclidea, la dissimilarità di Bray-Curtis, fortemente utilizzata in ambito biologico e infine la Jensen-Shannon divergence JSD. In tutti e tre i casi il numero ottimale di cluster da considerare è stato 2, a cui sono associati i coefficienti di Silhouette maggiori. 
-\vspace*{1cm}
+
 \begin{Figure}
+\begin{multicols}{2}
     \centering
+         \vspace*{1.7cm}
+     \includegraphics[width=\linewidth,keepaspectratio, scale=0.3]{images/real_tabella.PNG}
     \includegraphics[width=\linewidth,keepaspectratio]{images/silhouette.png}
+     \end{multicols}
   \end{Figure}
- \vspace*{1cm}
+
   
 Poiché presenta il maggiore coefficiente di Silhouette, e dunque la massima diversità tra gruppi e massima coesione all’interno di essi, si è scelto il clustering calcolato mediante la matrice delle distanze con metrica JSD. 
-Sulla stessa matrice delle distanze JSD sono state estratte le prime due componenti principali utilizzando la tecnica PCoA che, a differenza della PCA, accetta in input una matrice delle distanze invece che la matrice dei dati. In figura si possono vedere le osservazioni rappresentate nel piano delle prime due componenti principali, che spiegano rispettivamente il 40.2\% e il 17.3\% della variabilità dei batteri considerati. Osservando le composizioni dei due diversi cluster, si nota una netta differenziazione in termini di abbondanza dei generi Bacteroides e Prevotella. Mentre il cluster 1, rappresentato da soli 14 individui, registra un’alta abbondanza di Prevotella e un'abbondanza di Bacteroides prossima allo zero, il secondo raggruppamento ha comportamento esattamente opposto: in esso risiede una maggiore concentrazione di Bacteroides a scapito di una presenza del genere Prevotella molto ridotta.
+Sulla stessa matrice delle distanze JSD sono state estratte le prime due componenti principali utilizzando la tecnica PCoA che, a differenza della PCA, accetta in input una matrice delle distanze invece che la matrice dei dati. In figura si possono vedere le osservazioni rappresentate nel piano delle prime due componenti principali, che spiegano rispettivamente il 40.2\% e il 17.3\% della variabilità dei batteri considerati.
+\begin{Figure}
+    \centering
+    \includegraphics[width=\linewidth/2,keepaspectratio]{images/real_clustering.png}
+  \end{Figure}
+
+Osservando le composizioni dei due diversi cluster, si nota una netta differenziazione in termini di abbondanza dei generi Bacteroides e Prevotella. Mentre il cluster 1, rappresentato da soli 14 individui, registra un’alta abbondanza di Prevotella e un'abbondanza di Bacteroides prossima allo zero, il secondo raggruppamento ha comportamento esattamente opposto: in esso risiede una maggiore concentrazione di Bacteroides a scapito di una presenza del genere Prevotella molto ridotta.
 Si è investigata inoltre la possibile rilevanza della presenza di Ruminococcus all’interno dei due cluster ottenuti, per verificare se la concentrazione di questo genere di batterio avesse una qualche influenza nella composizione del cluster. Si è osservato tuttavia che Ruminococcus si distribuiva in egual modo nei due gruppi, suggerendo una scarsa capacità di discriminazione degli enterotipi ottenuti.
+\\
 \vspace*{1cm}
 \begin{Figure}
 	\begin{multicols}{3}
