@@ -37,7 +37,6 @@ library("arules")
 
 biom <- read_biom("datasets/221_otu_table.biom")
 bacteria_taxa = observation_metadata(biom)
-#map_nutrients <- read.csv("datasets/46764_mapping_file.txt", sep = "\t")
 nutrients_name = read_xls("datasets/1208344TableS4.xls",sheet=1,skip = 1,col_names=TRUE)
 colnames(nutrients_name) = nutrients_name[1,]
 nutrients_name = nutrients_name[-1,]
@@ -205,16 +204,9 @@ taxa_table <- cbind(taxa_table_2, taxa_table_3, taxa_table_4, taxa_table_5, taxa
 
 ```{r}
 
-patients_ids <- rownames(as.data.frame(t(otu_table(phy_tax))))
-
-
-
-
-# controllo che non ci siano nutrienti con 97 valori uguali: per la permanova non andrebbero bene
+# Check if there are nutrients with same value for the entire column: they will be discarded because they are not usable for permanova. 
 
 map_nutrients = map_nutrients[vapply(map_nutrients, function(x) length(unique(x)) > 1, logical(1L))]
-
-
 ```
 
 
@@ -225,9 +217,7 @@ map_nutrients = map_nutrients[vapply(map_nutrients, function(x) length(unique(x)
 # Compute microbiome distance based on all possible 3393 bacteria in each patient microbiome. Used unweighted unifrac distance.
 microbiome_distance_unweighted <- UniFrac(phy_tax, weighted=FALSE, normalized=TRUE, parallel=TRUE, fast=TRUE)
 
-# Compute pairwise permnova on nutrients levels to select only nutrients associated with gut microbiome at an FDR level 0f 25%.
-
-
+# Compute permanova on standardized nutrients to select only nutrients associated with gut microbiome at an FDR level 0f 25%.
 
 set.seed(1234)
 fdr_list <- c()
@@ -237,11 +227,7 @@ for (i in 1:(ncol(map_nutrients)-1)){
     fdr_list = append(fdr_list,fdr)
 }
 
-
-
-
 n_nutrients = length(fdr_list[fdr_list <= 0.25])
-
 selected_fdr_indexes = which(fdr_list <=.25)
 
 
@@ -278,7 +264,7 @@ selected_taxa_names = colnames(selected_taxa)
 # HEATMAP CORRELATION NUTRIENTS - TAXA
 
 ```{r}
-# Instead of creating Heatmap with correlation between selected nutrients and all 76 selected taxa, the heatmap plot will be on Spearman correlation between selected nutrients and relevant genera taxa.
+ Instead of creating Heatmap with correlation between selected nutrients and all 76 selected taxa, the heatmap plot will be on Spearman correlation between selected nutrients and relevant genera taxa.
 
 genera = extract_taxa(taxa_table_6)# only relevant genera 
 
@@ -286,15 +272,21 @@ genera_names = genera
 # change colnames for genera df and nutrients df to make them readable
 #correlation_data$Taxa = as.character(correlation_data$Taxa)
 colnames(genera) = unlist(lapply(colnames(genera), function(x) strsplit(x,"f__")[[1]][2]))
-#colnames(final_nutrients) = unlist(lapply(colnames(final_nutrients), function(x) strsplit(x,"_g_ave")[[1]][1]))
-
-final_nutrients_ab = as.data.frame(t(apply(final_nutrients,1, function(x){100*x/sum(x)})))
 
 
-colnames(genera_names) = unlist(lapply(colnames(genera_names), function(x) strsplit(x,"g__")[[1]][2]))
 
-# merge columns with same name (= equal genera) to plot them in the heatmap
-genera_names = as.data.frame(sapply(split.default(genera_names, names(genera_names)), rowSums, na.rm = TRUE))
+
+colnames(genera) = gsub(".g__", " ", colnames(genera))
+
+duplicated_genera = c("Ruminococcus","Prevotella")
+
+extract_genera_names = function(name){
+  if (!strsplit(name," ")[[1]][2] %in% duplicated_genera){
+    name = strsplit(name," ")[[1]][2]
+  }
+  return (name)
+}
+colnames(genera) = lapply(colnames(genera), extract_genera_names)
 
 
 
@@ -307,7 +299,7 @@ a = cbind(final_nutrients_ab,genera)
 nutrients_microbiome_correlations = cor(microbiome_nutrients_data,method= "spearman")[1:ncol(final_nutrients_ab),(ncol(final_nutrients_ab)+1):ncol(microbiome_nutrients_data)]
 
 heatmaply(nutrients_microbiome_correlations,colors = rev(hcl.colors(100,palette="RdBu")), k_row = 4, k_col = 4,
-          main ="Correlations between Genera Taxa and Nutrients",fontsize_row = 8,column_text_angle = 90,key.title = "Spearman Correlation") %>% layout(height=1300,width=900) 
+          main ="Analisi correlazioni tra generi e nutrienti",fontsize_row = 8,column_text_angle = 90,key.title = "Correlazione di Spearman") %>% layout(height=1300,width=900) 
 
 ```
 
@@ -384,10 +376,15 @@ ggplot(data_pca_clu, aes(x=PC1,y=PC2,color=factor(cluster)))+geom_point(size=2)+
   geom_point(aes(x=x.medoid,y=y.medoid),size=4,pch=18)+
   geom_segment(aes(x=x.medoid, y=y.medoid, xend=PC1, yend=PC2),size=0.6)+
   stat_ellipse(aes(x=PC1, y=PC2,color=factor(cluster), group=factor(cluster)),type = "norm") +
-  ggtitle("PAM clustering sugli enterotipi basato su JSD") +
+  ggtitle("PCoA sui generi dei batteri", subtitle = "PAM clustering sugli enterotipi basato su JSD") +
   scale_colour_discrete(name  ="cluster",
                             labels=c("1", "2")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) +
+  theme(plot.title=element_text(size = 28),legend.title=element_text(size=28), 
+    legend.text=element_text(size=20),axis.title.x = element_text(size = 20),
+  axis.text.x = element_text(size = 20),
+  axis.title.y = element_text(size = 20),
+  axis.text.y = element_text(size = 20))
 
 ```
 
@@ -410,33 +407,58 @@ prevotella = as.data.frame(cbind(table_taxa_clusters$cluster,prevotella_sum))
 colnames(prevotella) = c("cluster","prevotella")
 prevotella$cluster = as.factor(prevotella$cluster)
 
+
+ruminococcus_sum = table_taxa_clusters$k__Bacteria_p__Firmicutes_c__Clostridia_o__Clostridiales_f__Ruminococcaceae_g__Ruminococcus + table_taxa_clusters$k__Bacteria_p__Firmicutes_c__Clostridia_o__Clostridiales_f__Lachnospiraceae_g__Ruminococcus
+
+ruminococcus = as.data.frame(cbind(table_taxa_clusters$cluster,ruminococcus_sum))
+colnames(ruminococcus) = c("cluster","ruminococcus")
+ruminococcus$cluster = as.factor(ruminococcus$cluster)
+
+
 # boxplot on Bacteroides abundance difference between groups
 ggplot(bacteroides, aes(x=cluster, y=bacteroides, fill=cluster)) +
   geom_boxplot() +ggtitle("Abbondanza relativa Bacteroides") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title=element_text(size = 30),legend.title=element_text(size=28), 
+    legend.text=element_text(size=28),axis.title.x = element_text(size = 28),
+  axis.text.x = element_text(size = 28),
+  axis.title.y = element_text(size = 28),
+  axis.text.y = element_text(size = 28)
+  )
 
 ggplot(prevotella, aes(x=cluster, y=prevotella, fill=cluster)) +
   geom_boxplot() +ggtitle("Abbondanza relativa Prevotella") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title=element_text(size = 30),legend.title=element_text(size=28), 
+    legend.text=element_text(size=28),axis.title.x = element_text(size = 28),
+  axis.text.x = element_text(size = 28),
+  axis.title.y = element_text(size = 28),
+  axis.text.y = element_text(size = 28)
+  )
+
+ggplot(ruminococcus, aes(x=cluster, y=ruminococcus, fill=cluster)) +
+  geom_boxplot() +ggtitle("Abbondanza relativa Ruminococcus") +
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(plot.title=element_text(size = 28),legend.title=element_text(size=28), 
+    legend.text=element_text(size=28),axis.title.x = element_text(size = 28),
+  axis.text.x = element_text(size = 28),
+  axis.title.y = element_text(size = 28),
+  axis.text.y = element_text(size = 28)
+  )
+
 
 ```
 
 # ASSOCIATIONS NUTRIENTS - ENTEROTYPE CLUSTERS
 
 ```{r}
-# Function to standardize nutrients dataframe
-standardize = function(col){
-  col <- (col - mean(col)) / sd(col)
-  return (col)
-}
-standardized_nutriens = as.data.frame(apply(final_nutrients,2,standardize))
-standardized_nutriens$id = rownames(final_nutrients)
-
 table_taxa_clusters$id = rownames(table_taxa_clusters)
 subject_clusters = table_taxa_clusters[,c("id","cluster")]
 
+final_nutrients$id = rownames(final_nutrients)
+
 # Merging cluster assignment and standardized nutrients based on patient id. Then divided subjects that belongs to specific cluster.
-nutriens_with_clusters = merge(subject_clusters,standardized_nutriens,by="id")
+nutriens_with_clusters = merge(subject_clusters,final_nutrients,by="id")
 nutriens_cl1 = nutriens_with_clusters[nutriens_with_clusters$cluster==1,]
 nutriens_cl2 = nutriens_with_clusters[nutriens_with_clusters$cluster==2,]
 
@@ -454,8 +476,8 @@ colnames(associations_data) = c("Enterotipo 1", "Enterotipo 2")
 
 
 # Plot association between enterotype clusters and nutrients
-heatmaply(as.data.frame(t(associations_data)),colors = rev(hcl.colors(100,palette="RdBu")),
-          main ="Associazione tra nutrienti ed enterotipi",fontsize_row = 12, fontsize_col = 8,column_text_angle = 90,dendrogram = "column",k_col = 4) %>% layout(height=500,width=1400)
+heatmaply(as.data.frame(associations_data),colors = rev(hcl.colors(100,palette="RdBu")),
+          main ="Associazione tra nutrienti ed enterotipi",fontsize_title = 40 ,fontsize_row = 13, fontsize_col = 8,column_text_angle = 90,dendrogram = "row",k_row = 4,key.title = "Associazione standardizzata",labcol="black") %>% layout(height=1600,width=1200)
 
 ```
 
@@ -527,8 +549,8 @@ all_vars_dataset = merge(merge(dataset_demo_nutrients_taxa, principal_components
 
 all_genera_dataset = merge(merge(dataset_demo_nutrients_genera, principal_components_df_gen, by = "id"),cluster_assignment,by="id")
 
-write.csv(all_vars_dataset, "all_vars_df.csv", row.names = F, quote = F)
-write.csv(all_genera_dataset, "all_genera_vars_df.csv", row.names = F, quote = F)
+#write.csv(all_vars_dataset, "datasets/all_vars_df.csv", row.names = F, quote = F)
+#write.csv(all_genera_dataset, "datasets/all_genera_vars_df.csv", row.names = F, quote = F)
 ```
 
 
