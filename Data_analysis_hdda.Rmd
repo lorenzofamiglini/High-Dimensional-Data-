@@ -22,7 +22,7 @@ library(MASS)
 
 
 ```{r}
-df <- read.csv("all_vars_df.csv")
+df <- read.csv("datasets/all_vars_df.csv")
 ```
 
 
@@ -433,11 +433,14 @@ labs(title="Stepwise Backward regression (CV 10 folds)",
 ```{r}
 #Best model in stepwise cv forward: 
 train.control <- trainControl(method = "cv", repeats = 1, number = 9,savePred=T) #procedura di crossvalidation, number = 9, repeats = 1
-model<- train(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Odoribacteraceae.g__Butyricimonas +
+model<- train(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Porphyromonadaceae.g__Parabacteroides +
+                k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Blautia+
     k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
-      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Ruminococcaceae.g__Oscillospira + 
+      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Veillonella +
     k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
-    PC5_nut,data = train_data, method = "lm", 
+      k__Bacteria.p__Firmicutes.c__Erysipelotrichi.o__Erysipelotrichales.f__Erysipelotrichaceae.g__Catenibacterium+
+      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Phascolarctobacterium
+    ,data = train_data, method = "lm", 
                     #tuneGrid = data.frame(nvmax = 1:10), #da 1 a 3 variabili
                     trControl = train.control)
 
@@ -454,11 +457,14 @@ final_info$Rsquaredadj <- c(0.3551, 0.3446,0.5113)
 Modello Finale
 --------------
 ```{r}
-final_model <-lm(y_train ~  sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Odoribacteraceae.g__Butyricimonas +
+final_model <-lm(y_train ~ sex1m2f + age + k__Bacteria.p__Bacteroidetes.c__Bacteroidia.o__Bacteroidales.f__Porphyromonadaceae.g__Parabacteroides +
+                k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Blautia+
     k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Lachnospiraceae.g__Lachnobacterium + 
-      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Ruminococcaceae.g__Oscillospira + 
+      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Veillonella +
     k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Megasphaera + 
-    PC5_nut,data = train_data) #mape 0.07
+      k__Bacteria.p__Firmicutes.c__Erysipelotrichi.o__Erysipelotrichales.f__Erysipelotrichaceae.g__Catenibacterium+
+      k__Bacteria.p__Firmicutes.c__Clostridia.o__Clostridiales.f__Veillonellaceae.g__Phascolarctobacterium
+    ,data = train_data)
 
 
 summary(final_model)
