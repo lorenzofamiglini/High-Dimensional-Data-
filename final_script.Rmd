@@ -362,6 +362,16 @@ first_pcs = as.data.frame(cbind(pcoa$li[,1],pcoa$li[,2]))
 colnames(first_pcs) = c("PC1","PC2")
 rownames(first_pcs) = rownames(pcoa$li)
 
+otu_table_generapc = otu_table_genera[vapply(otu_table_genera, function(x) length(unique(x)) > 1, logical(1L))]
+
+data_pcs_bacteria = merge(first_pcs,otu_table_generapc,by=0)
+data_pcs_bacteria$Row.names <- NULL
+
+correlations_pc_bacteria = as.data.frame(cor(data_pcs_bacteria))
+
+correlations_first_pc = correlations_pc_bacteria[with(correlations_pc_bacteria, order(-PC1)), ]
+correlations_second_pc = correlations_pc_bacteria[with(correlations_pc_bacteria, order(-PC2)), ]
+
 # Plot individuals in two cluster on 2 dimension from PCOA output
 
 medoids = first_pcs[selected_clustering$medoids,]
