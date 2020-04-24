@@ -2,7 +2,7 @@ library("caret")
 library("tsutils")
 library(ggplot2)
 
-df <- read.csv("/Users/lorenzo/dev/uni/High-Dimensional-Data-/all_vars_df.csv")
+df <- read.csv("datasets/all_vars_df.csv")
 str(df)
 colnames(df)
 head(df$id)
