@@ -559,8 +559,8 @@ all_vars_dataset = merge(merge(dataset_demo_nutrients_taxa, principal_components
 
 all_genera_dataset = merge(merge(dataset_demo_nutrients_genera, principal_components_df_gen, by = "id"),cluster_assignment,by="id")
 
-#write.csv(all_vars_dataset, "datasets/all_vars_df.csv", row.names = F, quote = F)
-#write.csv(all_genera_dataset, "datasets/all_genera_vars_df.csv", row.names = F, quote = F)
+write.csv(all_vars_dataset, "datasets/all_vars_df.csv", row.names = F, quote = F)
+write.csv(all_genera_dataset, "datasets/all_genera_vars_df.csv", row.names = F, quote = F)
 ```
 
 
